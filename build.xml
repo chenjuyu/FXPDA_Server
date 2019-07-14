@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="IEAP" basedir="." default="deploy">
+	<property name="project.name.text" value="IEAP" />
+	<property name="target.dir" value="src/main/webapp/WEB-INF/classes" />
+	<property name="lib.dir" value="src/main/webapp/WEB-INF/lib" />
+	<property name="doc.dir" value="doc" />
+	<property name="war.dir" value="src/main/webapp" />
+	<property name="src.dir" value="src/main/java" />
+	<property name="resources.dir" value="src/main/resources" />
+	<target name="all" depends="display,clean,compile,copy">
+	</target>
+
+	<target name="display">
+		<echo message="=============${project.name.text}=============" />
+		<echo message="source directory = ${src.dir}" />
+		<echo message="target directory = ${target.dir}" />
+		<echo message="[ant display]        - show message of function" />
+		<echo message="[ant compile]        - compile file of java" />
+		<echo message="[ant copy]           - copy file of xml or properties" />
+		<echo message="[ant clean]          - delete directory of ${target.dir} " />
+		<echo message="[ant all  ]          - include target:clean,compile,copy" />
+		<echo message="[ant doc]            - create system api" />
+		<echo message="[ant war]            - build the web application archive" />
+		<echo message="" />
+	</target>
+	<path id="project.class.path">
+		<fileset dir="${lib.dir}">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	<patternset id="source.files">
+		<include name="**/*.hbm.xml" />
+		<include name="**/*.xml" />
+		<include name="**/*.properties" />
+		<include name="**/*.vm" />
+		<include name="**/*.xsd" />
+		<include name="**/*.schemas" />
+
+	</patternset>
+	<target name="compile" depends="display,copy">
+		<mkdir dir="${target.dir}" />
+		<echo message="===========Compile Source Code===========" />
+		<javac destdir="${target.dir}" memorymaximumsize="500M" fork="true" encoding="UTF-8" debug="true">
+			<src path="${src.dir}" />
+			<classpath>
+				<path refid="project.class.path" />
+			</classpath>
+		</javac>
+	</target>
+	<target name="copy" depends="display">
+		<copy todir="${target.dir}">
+			<fileset dir="${src.dir}">
+				<patternset refid="source.files" />
+			</fileset>
+			<fileset dir="${resources.dir}">
+				<patternset refid="source.files" />
+			</fileset>
+		</copy>
+	</target>
+
+
+
+	<target name="clean" depends="display">
+		<delete dir="${target.dir}" />
+	</target>
+
+
+
+
+	<target name="jar">
+		<jar jarfile="ieap.jar" basedir="${target.dir}">
+			<include name="**/*.class" />
+			<include name="**/*.properties" />
+			<include name="**/*.vm" />
+			<include name="**/*.xml" />
+		</jar>
+	</target>
+
+	<target name="war" depends="compile" description="Build the web application archive">
+		<war warfile="ieap.war" basedir="${war.dir}" webxml="${war.dir}/WEB-INF/web.xml">
+			<exclude name="**/.*" />
+		</war>
+	</target>
+	<target name="doc" depends="compile">
+		<javadoc packagenames="*" classpathref="project.class.path" destdir="${doc.dir}" Windowtitle="IEAP API">
+			<arg line="-encoding UTF-8 -charset UTF-8" />
+			<sourcepath path="${src.dir}" />
+		</javadoc>
+	</target>
+
+	<target name="zip" depends="all">
+		<java classname="com.nq.util.ZipCompressorByAnt">
+			<classpath>
+				<path refid="project.class.path" />
+				<pathelement location="${target.dir}" />
+			</classpath>
+		</java>
+	</target>
+
+	<target name="deploy" depends="all">
+		<java classname="com.nq.util.IeapGradeup">
+			<classpath>
+				<path refid="project.class.path" />
+				<pathelement location="${target.dir}" />
+			</classpath>
+			<arg value="www.inuoqi.com:6001"/>
+			<arg value="www.inuoqi.com:6002"/>
+			<arg value="www.inuoqi.com:6003"/>
+			<arg value="www.inuoqi.com:6004"/>
+			<arg value="www.inuoqi.com:6005"/>
+			<arg value="www.inuoqi.com:6006"/>
+			<arg value="www2.inuoqi.com"/>
+			<!--227.inuoqi.com:8888"/>
+			<-
+			<arg value="sales1.inuoqi.com:6001"/>
+			<arg value="sales2.inuoqi.com:6002"/>
+			<arg value="229.inuoqi.com:6666"/>
+			<arg value="220.inuoqi.com:8888"/>
+	        	<arg value="www.inuoqi.com"/>
+	        	<arg value="crm.inuoqi.com"/>
+	        	<arg value="229.inuoqi.com"/>
+	        	<arg value="227.inuoqi.com:8888"/>
+	        	<arg value="220.inuoqi.com:8888"/>
+	        	<arg value="241.inuoqi.com"/>
+	        	-->
+		</java>
+	</target>
+	
+
+</project>
+
