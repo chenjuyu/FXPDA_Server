@@ -10,6 +10,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +71,7 @@ public class SalesController extends BaseController {
             String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
             StringBuffer sb = new StringBuffer();
             sb.append(
-                    " select so.SalesID, de.Department , No, CONVERT(varchar(100), Date, 111) Date,isnull(QuantitySum,0) QuantitySum," + "AmountSum,AuditFlag,so.madebydate,(select Name from Employee where employeeId = so.EmployeeId) Employee,"
+                    " select so.SalesID, de.Department , No,so.CustomerID,so.so.EmployeeID, CONVERT(varchar(100), Date, 111) Date,isnull(QuantitySum,0) QuantitySum," + "AmountSum,AuditFlag,so.madebydate,(select Name from Employee where employeeId = so.EmployeeId) Employee,"
                             + "isnull(so.Memo,'') Memo,(select Customer from Customer where CustomerId = so.CustomerId) Customer," + "(select Brand from Brand where BrandId = so.BrandId) Brand,(select no from salesOrder where salesorderId = so.salesorderId) OrderNo from Sales so  ")
                     .append(" left join Department de on de.DepartmentID = so.DepartmentID where so.DepartmentID in (").append(userRight).append(") and direction = '1'  ");
             // 按条件查询
@@ -135,7 +136,7 @@ public class SalesController extends BaseController {
           String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
           StringBuffer sb = new StringBuffer();
           sb.append(
-                  " select so.SalesID, de.Department , No,so.Type,LastNeedRAmount='', CONVERT(varchar(10), Date, 121) Date,isnull(QuantitySum,0) QuantitySum," + "AmountSum,AuditFlag,Convert(varchar(10),so.AuditDate,121) AuditDate,Convert(varchar(19),so.madebydate,121) MadeByDate,(select Name from Employee where employeeId = so.EmployeeId) Employee,"
+                  " select so.SalesID, de.Department,so.DepartmentID , No,so.Type,so.CustomerID,so.EmployeeID,LastNeedRAmount='', CONVERT(varchar(10), Date, 121) Date,isnull(QuantitySum,0) QuantitySum," + "AmountSum,AuditFlag,Convert(varchar(10),so.AuditDate,121) AuditDate,Convert(varchar(19),so.madebydate,121) MadeByDate,(select Name from Employee where employeeId = so.EmployeeId) Name,"
                           + "isnull(so.Memo,'') Memo,(select Customer from Customer where CustomerId = so.CustomerId) Customer," + "(select Brand from Brand where BrandId = so.BrandId) Brand,(select no from salesOrder where salesorderId = so.salesorderId) OrderNo from Sales so  ")
                   .append(" left join Department de on de.DepartmentID = so.DepartmentID where so.DepartmentID in (").append(userRight).append(") and direction = '1'  ");
           // 按条件查询
@@ -593,8 +594,45 @@ public class SalesController extends BaseController {
             String typeEName = oConvertUtils.getString(req.getParameter("typeEName"));
             String notUseNegativeInventoryCheck = oConvertUtils.getString(req.getParameter("notUseNegativeInventoryCheck"));
             String jsonStr = oConvertUtils.getString(req.getParameter("data"));
+            System.out.println("JSON串："+jsonStr);
+            
             JSONArray datas = JSONArray.fromObject(jsonStr);
-            List<Map<String, Object>> dataList = JSONArray.toList(datas, Map.class);
+            List<Map<String, Object>> dataList =new ArrayList<>();
+            
+            List<List<Map<String, Object>>> sizeDatalist =new ArrayList<>(); //sizeData 所有元素的所有货品的，不是单个的，
+            for(int i=0;i<datas.size(); i++){
+              System.out.println("datas 没有删除键前 i串："+datas.get(i));
+              JSONObject json =datas.getJSONObject(i); //单个对象
+              JSONArray sizeData =json.getJSONArray("sizeData");
+              
+              List<Map<String, Object>> ls=JSONArray.toList(sizeData, Map.class);
+              sizeDatalist.add(ls);
+              json.remove("sizetitle");
+              json.remove("right");
+              json.remove("sizeData");
+              System.out.println("json第一项："+datas.get(i));
+            System.out.println("datas 删除键后 i串："+datas.get(i));
+            //dataList.add(datas.get(i));	
+            }  
+           
+            dataList = JSONArray.toList(datas, Map.class); //删除掉其他list才能转的一下正常的  
+             
+            for(int k=0;k<dataList.size();k++){                       //因不能一次转 所以要重新整理后台数据 
+            	Map<String, Object> map=dataList.get(k);
+            	 for(int m=0;m<sizeDatalist.size();m++){ //不知道 顺序是否对，不对再判断 
+            		if(String.valueOf(map.get("GoodsID")).equals(String.valueOf(sizeDatalist.get(m).get(0).get("GoodsID"))) && String.valueOf(map.get("ColorID")).equals(String.valueOf(sizeDatalist.get(m).get(0).get("ColorID")))){   //拿一个出来就可以
+            		 map.put("sizeData",sizeDatalist.get(m));
+            		}
+            	 } 	
+            }
+           
+           System.out.println("dataList最终的组成："+dataList.toString());
+           
+           System.out.println("SalesID:"+SalesID);
+           
+            //原来的
+            //JSONArray datas = JSONArray.fromObject(jsonStr);
+            //List<Map<String, Object>> dataList = JSONArray.toList(datas, Map.class);
             // 判断检查负库存
             String salesId = null;
             List<Map<String, Object>> tempList = new ArrayList<Map<String, Object>>();
@@ -610,12 +648,15 @@ public class SalesController extends BaseController {
                     }
                 }
             }
-            
-            boolean wxflag =Boolean.getBoolean(req.getParameter("wxflag")); 
+            System.out.println("wxflag的值："+req.getParameter("wxflag"));
+            String wxflag =req.getParameter("wxflag");
+           // boolean wxflag =Boolean.getBoolean(req.getParameter("wxflag")); 
             if (tempList.size() == 0) {
                 // 保存单据
-            	if(wxflag){
-                    salesId = publicService.saveSalesX(direction, dataList, SalesID, customerid, departmentid, employeeId, businessDeptId, memo, type, typeEName, brandId, discountRateSum, lastARAmount, orderAmount, privilegeAmount, paymentTypeId, client);
+            	if("true".equals(wxflag)){ 
+                  //  salesId = publicService.saveSalesX(direction, dataList, SalesID, customerid, departmentid, employeeId, businessDeptId, memo, type, typeEName, brandId, discountRateSum, lastARAmount, orderAmount, privilegeAmount, paymentTypeId, client);
+
+            		salesId = publicService.saveSalesX2(direction, dataList, SalesID, customerid, departmentid, employeeId, businessDeptId, memo, type, typeEName, brandId, discountRateSum, lastARAmount, orderAmount, privilegeAmount, paymentTypeId, client);
 
             	}
             	else{	
