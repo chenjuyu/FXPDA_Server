@@ -174,6 +174,13 @@ public class SalesController extends BaseController {
         	 
         	  Map<String,Object> listmap=(Map<String, Object>) list.get(i);
         	  
+        	  if(!"".equals(String.valueOf(listmap.get("AmountSum"))) && listmap.get("AmountSum") !=null){
+        		  listmap.put("AmountSum", new BigDecimal(String.valueOf(listmap.get("AmountSum"))).setScale(2,BigDecimal.ROUND_DOWN)); 
+        	  }else{
+        		  listmap.put("AmountSum", ""); 
+        	  }
+        	  
+        	  
         	  List<Map<String,Object>> right=new ArrayList<>();
         	  
         	  for(int n=0;n<3;n++){

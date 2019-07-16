@@ -447,8 +447,8 @@ public class SalesImpl implements SalesService {
     	            
     	               QuantitySum =QuantitySum+Integer.parseInt(String.valueOf(map.get("Quantity"))); //总数数量
     	               
-    	               AmountSum.add(new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
-    	               Discount.add(new BigDecimal(String.valueOf(map.get("Discount")))).setScale(2,BigDecimal.ROUND_DOWN);
+    	               AmountSum.add((map.get("Amount")==null || "".equals(map.get("Discount")))?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
+    	               Discount.add((map.get("Discount")==null || "".equals(map.get("Discount"))) ?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Discount")))).setScale(2,BigDecimal.ROUND_DOWN);
     	               
     	               
     	               
@@ -474,10 +474,47 @@ public class SalesImpl implements SalesService {
     	            	
     	            	System.out.println("Field的"+Field);
     	            	
+    	            	String UnitPrice =null;
+    	            	if("".equals(map.get("UnitPrice")) || map.get("UnitPrice")==null){
+    	            		UnitPrice=null;
+    	            	}else {
+    	            		UnitPrice =String.valueOf(map.get("UnitPrice"));
+    	            	}
+    	            	
+    	            	String  DiscountRate =null;
+    	            	  if(!"".equals(map.get("DiscountRate")) && map.get("DiscountRate") !=null)
+      	                {
+    	            		  DiscountRate=String.valueOf(map.get("DiscountRate"));
+      	                }
+    	            	
+    	            	String dDiscount =null;
+    	                if(!"".equals(map.get("Discount")) && map.get("Discount") !=null)
+    	                {
+    	                	dDiscount=String.valueOf(map.get("Discount"));
+    	                }
+    	                String Amount=null;
+    	                if(!"".equals(map.get("Amount")) && map.get("Amount") !=null)
+    	                {
+    	                	Amount=String.valueOf(map.get("Amount"));
+    	                }
+    	            	String RetailSales=null;
+    	            	
+    	            	 if(!"".equals(map.get("RetailSales")) && map.get("RetailSales") !=null)
+       	                {
+    	            		 RetailSales=String.valueOf(map.get("RetailSales"));
+       	                }
+    	            
+    	            	String RetailAmount =null;
+    	            	 if(!"".equals(map.get("RetailAmount")) && map.get("RetailAmount") !=null)
+        	                {
+    	            		 RetailAmount=String.valueOf(map.get("RetailAmount"));
+        	                }
+    	            	 
+    	            	 
     	            	//RetailSales RetailAmount 前台算好
     	                sql="Insert into SalesDetailTemp(IndexNo,SalesID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
     	            		   "select "+IndexNo+",'"+SalesID+"','"+String.valueOf(map.get("GoodsID"))+"','"+String.valueOf(map.get("ColorID"))+"',"
-    	            		      +FieldValue+""+String.valueOf(map.get("Quantity"))+","+String.valueOf(map.get("UnitPrice"))+","+String.valueOf(map.get("DiscountRate"))+","+String.valueOf(map.get("Discount"))+","+String.valueOf(map.get("Amount"))+","+sizIndex+","+String.valueOf(map.get("RetailSales"))+","+String.valueOf(map.get("RetailAmount")); 	
+    	            		      +FieldValue+""+String.valueOf(map.get("Quantity"))+","+UnitPrice+","+DiscountRate+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount; 	
     	               commonDao.executeSql(sql); //一条条写入	
     	               
     	            }
@@ -487,7 +524,7 @@ public class SalesImpl implements SalesService {
 	               System.out.println("尺码组去掉最后一位:"+DisplaySizeGroup);
 	              
     	            
-    	            sql ="select Sum(Quantity) Qty,Sum(Discount) DiscountSum,Sum(Amount) Amt,Sum(RetailAmount) RAmt from SalesDetailTemp where SalesID= ? ";
+    	            sql ="select isnull(Sum(Quantity),0) Qty,isnull(Sum(Discount),0) DiscountSum,isnull(Sum(Amount),0) Amt,isnull(Sum(RetailAmount),0) RAmt from SalesDetailTemp where SalesID= ? ";
      	    	    List<Map<String,Object>> ls= commonDao.findForJdbc(sql, SalesID);
      	    	    BigDecimal  DiscountSum =new BigDecimal(String.valueOf(ls.get(0).get("DiscountSum"))).setScale(2,BigDecimal.ROUND_DOWN);
      	    	    BigDecimal RAmt =new BigDecimal(String.valueOf(ls.get(0).get("RAmt"))).setScale(2,BigDecimal.ROUND_DOWN);
@@ -546,28 +583,74 @@ public class SalesImpl implements SalesService {
      	            		
      	            		Map<String, Object>  sizemap=	sizeData.get(j);
      	            		
-     	            		//只会涉及到有数量的，没有数量的尺码 不会出现 	
-     	            		if(sizemap.get("Quantity") !=null &&  !"null".equals(String.valueOf(sizemap.get("Quantity"))) 
-     	            		 && !"0".equals(String.valueOf(sizemap.get("Quantity"))) && !"".equals(String.valueOf(sizemap.get("Quantity")))){
+     	            		//只会涉及到有数量的，没有数量的尺码 不会出现 	修改就会出现0的情况，所以这里要让0的进来
+     	            		if(sizemap.get("Quantity") !=null &&  !"null".equals(String.valueOf(sizemap.get("Quantity")) ) 
+     	            		  && !"".equals(String.valueOf(sizemap.get("Quantity")))){
      	            		    Field=Field+String.valueOf(sizemap.get("x"))+",";
+     	            		    if("".equals(sizemap.get("Quantity")) || sizemap.get("Quantity") ==null || "0".equals(String.valueOf(sizemap.get("Quantity")))){
+     	            		    	FieldValue =FieldValue+"null,";
+     	            		    	 UpdateStr=UpdateStr+String.valueOf(sizemap.get("x"))+"=null,";
+     	            		    }else{
      	            		    FieldValue =FieldValue+String.valueOf(sizemap.get("Quantity"))+",";
-     	            		    UpdateStr=UpdateStr+String.valueOf(sizemap.get("x"))+"="+String.valueOf(sizemap.get("Quantity"))+",";
+     	            		   UpdateStr=UpdateStr+String.valueOf(sizemap.get("x"))+"="+String.valueOf(sizemap.get("Quantity"))+",";
+     	            		    }
+     	            		   
      	            		}	
      	            	}   	    		  
     	    		  
     	    		  
-    	    		  
+     	           	String UnitPrice =null;
+	            	if("".equals(map2.get("UnitPrice")) || map2.get("UnitPrice")==null){
+	            		UnitPrice=null;
+	            	}else {
+	            		UnitPrice =String.valueOf(map2.get("UnitPrice"));
+	            	}
+	            	
+	            	String  DiscountRate =null;
+	            	  if(!"".equals(map2.get("DiscountRate")) && map2.get("DiscountRate") !=null)
+  	                {
+	            		  DiscountRate=String.valueOf(map2.get("DiscountRate"));
+  	                }
+	            	
+	            	String dDiscount =null;
+	                if(!"".equals(map2.get("Discount")) && map2.get("Discount") !=null)
+	                {
+	                	dDiscount=String.valueOf(map2.get("Discount"));
+	                }
+	                String Amount=null;
+	                if(!"".equals(map2.get("Amount")) && map2.get("Amount") !=null)
+	                {
+	                	Amount=String.valueOf(map2.get("Amount"));
+	                }
+	            	String RetailSales=null;
+	            	
+	            	 if(!"".equals(map2.get("RetailSales")) && map2.get("RetailSales") !=null)
+   	                {
+	            		 RetailSales=String.valueOf(map2.get("RetailSales"));
+   	                }
+	            
+	            	String RetailAmount =null;
+	            	 if(!"".equals(map2.get("RetailAmount")) && map2.get("RetailAmount") !=null)
+    	                {
+	            		 RetailAmount=String.valueOf(map2.get("RetailAmount"));
+    	                }
+     	            	
+     	            	
     	    		  
     	    	   if(count>=1){ //更新存在的一行
    	            	if(!"".equals(FieldValue) && FieldValue !=null){
    	            		//FieldValue =FieldValue.substring(0, FieldValue.length()-1);
-   	            		 sql="Update salesdetailtemp set "+UpdateStr+"Quantity="+String.valueOf(map2.get("Quantity"))+",UnitPrice="+String.valueOf(map2.get("UnitPrice"))+",Discount="+String.valueOf(map2.get("Discount"))+",DiscountRate="+String.valueOf(map2.get("DiscountRate"))+",Amount="+String.valueOf(map2.get("Amount"))+" where goodsId='"+goodsId+"' and colorid='"+colorId+"' and salesid = '" + SalesID + "' and SalesDetailID= '"+DetailID+"'";	
-   	            		commonDao.executeSql(sql);
+   	            		 sql="Update salesdetailtemp set "+UpdateStr+"Quantity="+String.valueOf(map2.get("Quantity"))+",UnitPrice="+UnitPrice+",Discount="+dDiscount+",DiscountRate="+DiscountRate+",Amount="+Amount+" where goodsId='"+goodsId+"' and colorid='"+colorId+"' and salesid = '" + SalesID + "' and SalesDetailID= '"+DetailID+"'";	
+   	            		System.out.println("sql语句："+sql);
+   	            		 commonDao.executeSql(sql);
    	            	}   
-    	    	   }else{
+    	    	   }else{ //
+    	    		   
+    	    
+    	    		   
     	    		   sql="Insert into SalesDetailTemp(IndexNo,SalesID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
     	            		   "select "+index+",'"+SalesID+"','"+String.valueOf(map2.get("GoodsID"))+"','"+String.valueOf(map2.get("ColorID"))+"',"
-    	            		      +FieldValue+"'"+String.valueOf(map2.get("Quantity"))+"',"+String.valueOf(map2.get("UnitPrice"))+","+String.valueOf(map2.get("DiscountRate"))+","+String.valueOf(map2.get("Discount"))+","+String.valueOf(map2.get("Amount"))+","+sizIndex+","+String.valueOf(map2.get("RetailSales"))+","+String.valueOf(map2.get("RetailAmount"));; 	
+    	            		      +FieldValue+"'"+String.valueOf(map2.get("Quantity"))+"',"+UnitPrice+","+DiscountRate+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount+""; 	
     	               commonDao.executeSql(sql);
     	    		      
     	    	   } 	
@@ -576,9 +659,9 @@ public class SalesImpl implements SalesService {
     	    	  }//list 结束    	 
     	    	 
     	    	 //总和
-    	    	   sql ="select Sum(Quantity) Qty,Sum(Amount) Amt,Sum(RetailAmount) RAmt from SalesDetailTemp where SalesID= ? ";
+    	    	   sql ="select isnull(Sum(Quantity),0) Qty,isnull(Sum(Amount),0) Amt,isnull(Sum(RetailAmount),0) RAmt from SalesDetailTemp where SalesID= ? ";
     	    	   List<Map<String,Object>> ls= commonDao.findForJdbc(sql, SalesID);
-    	    	   sql ="Update Sales set QuantitySum="+String.valueOf(ls.get(0).get("Qty"))+",AmountSum="+String.valueOf(ls.get(0).get("Amt")) +",RetailAmountSum="+String.valueOf(ls.get(0).get("RAmt"))+" where SalesID='"+SalesID+"'";
+    	    	   sql ="Update Sales set QuantitySum="+String.valueOf(ls.get(0).get("Qty"))+",AmountSum="+String.valueOf(ls.get(0).get("Amt")) +",RetailAmountSum="+String.valueOf(ls.get(0).get("RAmt"))+",displaySizeGroup =(SELECT STUFF((select DISTINCT ','''+g.GroupID +'''' from SalesDetailTemp a JOIN goods g ON a.goodsid=g.goodsid WHERE salesid='" + SalesID + "' FOR XML PATH('')),1,1,'')) where SalesID='"+SalesID+"'";
     	    	   commonDao.executeSql(sql);
     	    	   
     	    	   if (lastARAmount != null && lastARAmount.compareTo(BigDecimal.ZERO) != 0 && direction != -1) {
