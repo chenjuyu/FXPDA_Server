@@ -15,6 +15,7 @@ import com.fuxi.core.common.exception.BusinessException;
 import com.fuxi.core.common.service.SalesService;
 import com.fuxi.system.util.Client;
 import com.fuxi.system.util.DataUtils;
+import com.fuxi.system.util.ResourceUtil;
 
 /**
  * Title: SalesImpl Description: 销售发(退)货业务逻辑接口实现类
@@ -555,8 +556,20 @@ public class SalesImpl implements SalesService {
     	            }
     	            
     	            
-    	     }else{//修改
-    	    	 Object obj = null;
+    	     }else{//修改   这里涉及到没有 的，就要删除货品
+    	    	 Object obj = null;String temptable="tempdb..SalesTemp";
+    	    	 
+    	    	 sql ="if not Exists(select name from tempdb..SysObjects where Name ='SalesTemp') Create table "+temptable+
+    	    		  "(SalesDetailID varchar(50),UserID varchar(30))";
+    	    	
+    	    	  commonDao.executeSql(sql);
+    	    	  
+    	    	 
+    	    	  
+    	    	  commonDao.executeSql("delete from tempdb..SalesTemp where UserID='"+client.getUserID()+"'"); // 删除之前的
+    	    	 // commonDao.executeSql("truncate table tempdb..SalesTemp"); //清表 Client
+     
+    	    	 
     	    	  for(int i=0;i<dataList.size();i++){ //每一条
     	    	      Map<String,Object> map2 =dataList.get(i);
     	    		  String goodsId =String.valueOf(map2.get("GoodsID"));
@@ -644,7 +657,7 @@ public class SalesImpl implements SalesService {
    	            		System.out.println("sql语句："+sql);
    	            		 commonDao.executeSql(sql);
    	            	}   
-    	    	   }else{ //
+    	    	   }else{ //单据里存在就是新增
     	    		   
     	    
     	    		   
@@ -655,9 +668,16 @@ public class SalesImpl implements SalesService {
     	    		      
     	    	   } 	
     	    		
-    	    	    
+    	    	   //salesid ,goodsid,colorid 判断 是否还存在单据     此都是已存在的   放在一个表里面 上面已经写入就会有  SalesDetailID
+    	    	   sql="Insert into "+temptable+"(UserID,SalesDetailID)"+
+    	    	       "select '"+client.getUserID()+"', SalesDetailID from SalesDetailTemp where SalesID='"+SalesID+"' and GoodsID ='"+String.valueOf(map2.get("GoodsID"))+"' and ColorID='"+String.valueOf(map2.get("ColorID"))+"'";
+    	    	   commonDao.executeSql(sql); 
     	    	  }//list 结束    	 
-    	    	 
+    	    	 //不存在 的删除 ，存在的保留 SalesDetailID唯一，不重复
+    	    	  sql="delete a from SalesDetailTemp a where a.SalesID='"+SalesID+"' and not Exists(select SalesDetailID from "+temptable+" b where a.SalesDetailID=b.SalesDetailID and b.UserID='"+client.getUserID()+"' )";
+    	    	  System.out.println("删除语句："+sql);
+    	    	  commonDao.executeSql(sql); 
+    	    	  
     	    	 //总和
     	    	   sql ="select isnull(Sum(Quantity),0) Qty,isnull(Sum(Amount),0) Amt,isnull(Sum(RetailAmount),0) RAmt from SalesDetailTemp where SalesID= ? ";
     	    	   List<Map<String,Object>> ls= commonDao.findForJdbc(sql, SalesID);

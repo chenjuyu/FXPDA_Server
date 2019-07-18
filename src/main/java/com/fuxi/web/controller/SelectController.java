@@ -1,15 +1,20 @@
 package com.fuxi.web.controller;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.servlet.http.HttpServletRequest;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+
 import com.fuxi.core.common.dao.impl.CommonDao;
 import com.fuxi.core.common.exception.BusinessException;
 import com.fuxi.core.common.model.json.AjaxJson;
@@ -1840,6 +1845,742 @@ public class SelectController extends BaseController {
     }
 
     /**
+     * 解析条码(通过条码获取货品明细信息)  重写，不用原来的 2019-07-18  返回的内容不合适
+     *   
+     * @param req
+     * @return
+     */
+    @RequestMapping(params = "analyticalBarcodeX")
+    @ResponseBody
+    public AjaxJson analyticalBarcodeX(HttpServletRequest req) {
+        Client client = ResourceUtil.getClientFromSession(req);
+        AjaxJson j = new AjaxJson();
+        j.setAttributes(new HashMap<String, Object>());
+        try {
+            String barCode = oConvertUtils.getString(req.getParameter("BarCode"));
+            String customerId = oConvertUtils.getString(req.getParameter("CustomerId"));
+            String type = oConvertUtils.getString(req.getParameter("Type"));   //价格 与折扣  从前端 固定传 了，不要再判断了  发退货时，这个为  字段名
+            String column = null;
+        	String TypeStr ="PriceType";  
+    		String DiscountRateStr="DiscountRate";
+            List addItem = new ArrayList();
+            String sql ="";
+            Map<String,Object> temp =null;
+            
+            
+            if ("".equals(type) || type.isEmpty()) {
+                type = null;
+            }else{
+            	TypeStr =type;
+            }
+            
+            // 获取列名  货品资料的，根据 单据类别 获取单价取值  字段名
+           // column = getTypeColumn(client.getDeptID(),customerId, type);
+            Map<String,Object> m1=getTypeColumnNew(client.getDeptID(),customerId, type);
+            column =String.valueOf(m1.get("column")); //字段名
+            if(!"".equals(customerId) && customerId !=null){
+            DiscountRateStr  = String.valueOf(m1.get("DiscountRate"));  //字段名
+            }
+            // 判断条码表是否存在该条码
+            int count = Integer.parseInt(String.valueOf(commonDao.getData("select count(1) from BarCode where barcode = ? ", barCode)));
+            if (count > 0) {
+                // 判断货品颜色是否定义
+                int exit = Integer.parseInt(String.valueOf(commonDao.getData(" select count(1) from goodsColor where goodsId = (select goodsId from BarCode where barcode = ?) ", barCode)));
+                StringBuffer sb = new StringBuffer();
+                sb.append(" select bc.BarCode,g.Name ,g.PresentFlag,gt.Code GoodsTypeCode,g.DiscountFlag,c.Color,s.Size,bc.GoodsID,bc.ColorID,bc.SizeID,isnull(g.Discount,10) PosDiscount  ")
+                        .append(", g.Code,  c.Color ,c.No ColorCode, s.Size SizeName, s.No SizeCode,ss.No IndexNo ").append(",isnull(").append(column).append(",0) UnitPrice, isnull(g.RetailSales,0) RetailSales,ss.SizeGroupID from BarCode bc")
+                        .append(" left join Goods g on bc.GoodsID = g.GoodsID ").append(" left join Color c on bc.ColorID = c.ColorID ").append(" left join Size s on bc.SizeID = s.SizeID ").append(" left join GoodsType gt on gt.GoodsTypeID = g.GoodsTypeID ")
+                        .append(" left join SizeGroup sg on sg.SizeGroupID = gt.SizeGroupID ").append(" left join SizeGroupSize ss on ss.SizeGroupID = sg.SizeGroupID and ss.SizeID = bc.SizeID ");
+                if (exit > 0) {// 使用货品颜色
+                    sb.append(" join goodsColor gc on gc.goodsId = bc.goodsId and gc.colorId = bc.colorId ");
+                }
+                sb.append("  where BarCode = '").append(barCode).append("'");    
+                List<Map<String,Object>> ls = commonDao.findForJdbc(sb.toString());    //证明已经存在了
+                temp =ls.get(0);
+                
+                //重新封装  货品颜色 
+                if(!"".equals(customerId) && customerId !=null){
+               sql="select CustomerID,Customer,"+TypeStr+" PriceType , "+DiscountRateStr+" DiscountRate  from Customer where CustomerID = ? ";
+              // List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql,customerId);
+               List<Map<String,Object>> cust=	commonDao.findForJdbc(sql,customerId);
+        	   
+        	   System.out.println("价格类型："+String.valueOf(cust.get(0).get("PriceType")));
+        	   System.out.println("折扣："+String.valueOf(cust.get(0).get("DiscountRate")));
+        	   
+        	   String PriceType="零售价";
+        	   if(!"".equals(String.valueOf(cust.get(0).get("PriceType"))) && cust.get(0).get("PriceType") !=null && !"null".equals(String.valueOf(cust.get(0).get("PriceType")))){
+        		   PriceType =String.valueOf(cust.get(0).get("PriceType"));  //零售价，批发价
+        	   }
+               //返回真实字段
+        	   
+        		  String PriceField ="RetailSales";
+        		  sql ="select  dbo.GetCustPriceTypeOfFieldName('"+PriceType+"') PriceType";
+        		  
+        		  List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql);
+        		  
+        		  System.out.println("价格类型字段："+String.valueOf(custPriceType.get(0).get("PriceType")));
+        		  
+        		  if(custPriceType.get(0).get("PriceType") !=null && !"null".equals(custPriceType.get(0).get("PriceType")) && !"".equals(String.valueOf(custPriceType.get(0).get("PriceType")))){
+        			  PriceField =String.valueOf(custPriceType.get(0).get("PriceType"));
+        		  }
+        			String DiscountRate="0";
+        			
+        			if(cust.get(0).get("DiscountRate") !=null && !"".equals(String.valueOf(cust.get(0).get("DiscountRate"))) && !"null".equalsIgnoreCase(String.valueOf(cust.get(0).get("DiscountRate")))){
+        				DiscountRate =String.valueOf(cust.get(0).get("DiscountRate"));
+        			}
+        			
+        			sb =new StringBuffer();
+        			sb.append("select GoodsID,Code,Name,GroupID,RetailSales,"+PriceField+" UnitPrice, Discount=0.0,DiscountRate="+DiscountRate+", Quantity=0,Amount=0  from Goods where GoodsID = '"+String.valueOf(temp.get("GoodsID"))+"'");
+        			List<Map<String, Object>> lg =commonDao.findForJdbc(sb.toString());
+        			for(int i=0;i< lg.size(); i++){
+        				Map<String,Object> map= lg.get(i);
+        				
+        				sql="select a.GoodsID,a.ColorID,c.Color from GoodsColor a join Color c on a.ColorID=c.ColorID where a.GoodsID =? ";
+        				List<Map<String, Object>> color=commonDao.findForJdbc(sql,String.valueOf(map.get("GoodsID")));
+        				for(int j2 =0;j2<color.size();j2++){ //第个颜色包三个属性 一个颜色 一个map
+        					
+        					Map<String,Object> datamap=new LinkedHashMap<>();
+        					
+        					Map<String,Object> m2=color.get(j2);
+        					datamap.put("GoodsID", String.valueOf(map.get("GoodsID")));
+        					datamap.put("Code", String.valueOf(map.get("Code")));
+        					datamap.put("Name", String.valueOf(map.get("Name")));
+        					datamap.put("GroupID", String.valueOf(map.get("GroupID")));
+        					datamap.put("RetailSales", new BigDecimal(String.valueOf(map.get("RetailSales"))).setScale(2,BigDecimal.ROUND_DOWN));
+        					datamap.put("Discount", new BigDecimal(String.valueOf(map.get("Discount"))).setScale(2,BigDecimal.ROUND_DOWN));
+        					if(!"".equals(String.valueOf(map.get("UnitPrice"))) && map.get("UnitPrice") !=null && !"null".equals(String.valueOf(map.get("UnitPrice"))))
+        					{	
+        					datamap.put("UnitPrice", new BigDecimal(String.valueOf(map.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+        					}else{
+        						datamap.put("UnitPrice","");
+        					}
+        					if(!"".equals(String.valueOf(map.get("DiscountRate"))) && map.get("DiscountRate") !=null && !"null".equals(String.valueOf(map.get("DiscountRate"))))
+        					{
+        					datamap.put("DiscountRate", new BigDecimal(String.valueOf(map.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+        					if(!"".equals(String.valueOf(map.get("UnitPrice"))) && map.get("UnitPrice") !=null && !"null".equals(String.valueOf(map.get("UnitPrice")))){
+        						if(new BigDecimal(String.valueOf(map.get("DiscountRate"))).compareTo(BigDecimal.ZERO) !=0 ){
+        							System.out.println("进入此方法了a");
+        							datamap.put("Amount",new BigDecimal(String.valueOf(map.get("UnitPrice"))).multiply(new BigDecimal(String.valueOf(map.get("DiscountRate")))).divide(new BigDecimal(10.0)).setScale(2,BigDecimal.ROUND_DOWN));	
+        								
+        						}else{
+        							 System.out.println("进入此方法了b");
+        							datamap.put("Amount",new BigDecimal(String.valueOf(map.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+        						}
+        						//数量默认为1 ，就单价 * 折扣，就可以了，不为1  就不一样
+        					}
+        					
+        					
+        					}else{
+        						datamap.put("DiscountRate","");	
+        					}
+        					
+        					 System.out.println("货号："+String.valueOf(datamap.get("Code"))+"\t"+"单价："
+        					 +String.valueOf(datamap.get("UnitPrice"))+"\t"+"折扣："
+        					 + String.valueOf(datamap.get("DiscountRate"))	 
+        					 );
+        					
+        					if(String.valueOf(map.get("Quantity")).equals("0")){
+        						datamap.put("Quantity", "");
+        					}else{
+        						datamap.put("Quantity", String.valueOf(map.get("Quantity")));
+        					}
+        					
+        					
+        					
+        					if("".equals(String.valueOf(datamap.get("Amount"))) ||datamap.get("Amount")==null ){
+        						datamap.put("Amount", "");
+        					}
+        					//else{
+        					//	datamap.put("Amount",  new BigDecimal(String.valueOf(datamap.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+        					//}
+        				
+        					datamap.put("Quantity", 1);  //单据界面 扫，默认为1吧
+        					
+        					
+        					
+        					
+        					datamap.put("ColorID", String.valueOf(m2.get("ColorID")));
+        					datamap.put("Color", String.valueOf(m2.get("Color")));
+        					datamap.put("img", "");
+        					
+        					List<Map<String, Object>> sizetitle =new ArrayList<>();
+        					List<Map<String, Object>> sizeData =new ArrayList<>();
+        					List<Map<String, Object>> right =new ArrayList<>();
+        					//--------------颜色----------------
+        					
+        					sql="select * from SizeGroupSize where SizeGroupID = ?";
+        					List<Map<String, Object>> sizels=commonDao.findForJdbc(sql,String.valueOf(map.get("GroupID")));
+        					for(int k=0;k< sizels.size();k++){ 
+        					
+        						Map<String,Object> m3=sizels.get(k);
+        					
+        						Map<String,Object> m4=new LinkedHashMap<String,Object>();//sizeData 的map
+        						Map<String,Object> st=new LinkedHashMap<String,Object>();
+        						st.put("field", "x_"+String.valueOf(m3.get("No")));
+        						st.put("title", String.valueOf(m3.get("Size")));
+        						sizetitle.add(st);
+        						//----------显示尺码列--------------
+        						//--------数据---------
+        						m4.put("GoodsID", String.valueOf(map.get("GoodsID")));
+        						m4.put("ColorID", String.valueOf(datamap.get("ColorID")));
+        						m4.put("Color", String.valueOf(datamap.get("Color")));
+        						m4.put("x", "x_"+String.valueOf(m3.get("No")));
+        						if(String.valueOf(temp.get("IndexNo")).equals(String.valueOf(m3.get("No"))) ) //尺码编号    因为在在单据界面 加，就默认数量为1 吧，后面加也再重新加数量修改
+        					    {
+        							m4.put("Quantity", 1);
+        							 if(!"".equals(String.valueOf(datamap.get("Amount")))){
+        							 m4.put("Amount", new BigDecimal(String.valueOf(datamap.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+        							 }else{
+        								 m4.put("Amount", ""); 
+        							 }
+        							 }else{
+        					    	m4.put("Quantity", "");
+        					    	m4.put("Amount", "");
+        					    }
+        					
+        						
+        						if(!"".equals(String.valueOf(datamap.get("UnitPrice"))) && datamap.get("UnitPrice") !=null && !"null".equals(String.valueOf(datamap.get("UnitPrice"))))
+        						{	
+        						m4.put("UnitPrice", new BigDecimal(String.valueOf(datamap.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+        						
+        						}else{
+        							m4.put("UnitPrice","");
+        						}
+        						if(!"".equals(String.valueOf(datamap.get("DiscountRate"))) && datamap.get("DiscountRate") !=null && !"null".equals(String.valueOf(datamap.get("DiscountRate"))))
+        						{
+        							m4.put("DiscountRate", new BigDecimal(String.valueOf(datamap.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+        							
+        						}else{
+        							m4.put("DiscountRate","");	
+        						}
+        						
+        						
+        						
+        						m4.put("SizeID", String.valueOf(m3.get("SizeID")));
+        						m4.put("Size", String.valueOf(m3.get("Size")));
+        						
+        						sizeData.add(m4);
+        					}
+        					
+        				//	for(int n=0;n<2;n++){
+        						Map<String,Object> m5=new LinkedHashMap<String,Object>();
+        						m5.put("text", "删除");
+        					/*	m5.put("onPress", "() => {"+
+        		                                  "  modal.toast({ "+
+        		                                  "      message: '删除',"+
+        		                                  "      duration: 0.3 "+
+        		                                  "  });"+
+        		                                "}"); */
+        						
+        						Map<String,Object> styleMap=new LinkedHashMap<String,Object>();
+        						styleMap.put("backgroundColor", "#F4333C");
+        						styleMap.put("color", "white");
+        						m5.put("style", styleMap);
+        						
+        						
+        						right.add(m5);
+        				//	}
+        					
+        					datamap.put("sizetitle", sizetitle);
+        					datamap.put("sizeData", sizeData);
+        					datamap.put("right", right);
+        					
+        					addItem.add(datamap);
+        				}
+        			
+        				
+        			
+        				
+        			
+        				
+        				
+        			}
+                
+                }
+                
+                // addItem
+            } else {
+                // 使用自定义条码解析规则解析条码
+                List<Map<String, Object>> datas = BarcodeUtil.barcodeToGoods(barCode);
+                // 使用伏羲标准解析规则解析条码
+                // if(datas == null || datas.size() == 0){
+                // datas = analyticalStandardBarcode(barCode);
+                // }
+                if (datas != null && datas.size() > 0) {
+                    for (int i = 0; i < datas.size(); i++) {
+                        Map map = datas.get(i);
+                        String goodsCode = String.valueOf(map.get("goodsCode"));
+                        String colorNo = String.valueOf(map.get("colorCode"));
+                        String sizeNo = String.valueOf(map.get("sizeCode"));
+                        // 获取货品,颜色,尺码的ID
+                        String goodsId = String.valueOf(commonDao.getData(" select goodsId from goods g where g.code = '" + goodsCode + "' "));
+                        String sizeId = String.valueOf(commonDao.getData(" select sizeId from size s where s.no = '" + sizeNo + "' "));
+                        String colorId = null;
+                        // 判断使用的颜色类型
+                        if (LoadUserCount.colorOption == 4) {
+                            colorId = String.valueOf(commonDao.getData(" select colorId from brandcolor c where c.no = '" + colorNo + "' and brandId = (select brandId from goods where goodsId = '" + goodsId + "') "));
+                        } else {
+                            colorId = String.valueOf(commonDao.getData(" select colorId from color c where c.no = '" + colorNo + "' "));
+                        }
+                        // 判断货品颜色是否定义
+                        int exit = Integer.parseInt(String.valueOf(commonDao.getData(" select count(1) from goodsColor where goodsId = ? ", goodsId)));
+                        StringBuffer sb = new StringBuffer();
+                        sb.append(" select ? as BarCode, g.Name GoodsName,c.Color,s.Size,g.PresentFlag,g.DiscountFlag,g.Code GoodsCode,gt.Code GoodsTypeCode,isnull(g.Discount,10) Discount, c.Color ColorName,c.No ColorCode,ss.SizeGroupID, s.Size SizeName,g.GoodsID,c.ColorID,s.SizeID,  ")
+                                .append(" s.No SizeCode,ss.No IndexNo,isnull(").append(column).append(",0) UnitPrice, isnull(g.RetailSales,0) RetailSales from Goods g, ").append(" Color c,size s,GoodsType gt,");
+                        if (exit > 0) {// 关联货品颜色表
+                            sb.append(" goodsColor gc, ");
+                        }
+                        sb.append(" SizeGroup sg,SizeGroupSize ss where s.SizeID = ?  ").append(" and c.colorId = ? and g.goodsId = ? and gt.GoodsTypeID = g.GoodsTypeID and sg.SizeGroupID = gt.SizeGroupID ").append(" and ss.SizeGroupID = sg.SizeGroupID and ss.SizeID = ? ");
+                        if (exit > 0) {// 关联货品颜色表
+                            sb.append(" and g.goodsId = gc.goodsId and c.colorId = gc.colorId ");
+                        }
+                      //  addItem = commonDao.findForJdbc(sb.toString(), barCode, sizeId, colorId, goodsId, sizeId);
+                        
+                        List<Map<String,Object>> ls =commonDao.findForJdbc(sb.toString(), barCode, sizeId, colorId, goodsId, sizeId);    //证明已经存在了
+                        temp =ls.get(0);
+                        
+                        //重新封装  货品颜色 
+                        if(!"".equals(customerId) && customerId !=null){
+                       sql="select CustomerID,Customer,"+TypeStr+" PriceType , "+DiscountRateStr+" DiscountRate  from Customer where CustomerID = ? ";
+                      // List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql,customerId);
+                       List<Map<String,Object>> cust=	commonDao.findForJdbc(sql,customerId);
+                	   
+                	   System.out.println("价格类型："+String.valueOf(cust.get(0).get("PriceType")));
+                	   System.out.println("折扣："+String.valueOf(cust.get(0).get("DiscountRate")));
+                	   
+                	   String PriceType="零售价";
+                	   if(!"".equals(String.valueOf(cust.get(0).get("PriceType"))) && cust.get(0).get("PriceType") !=null && !"null".equals(String.valueOf(cust.get(0).get("PriceType")))){
+                		   PriceType =String.valueOf(cust.get(0).get("PriceType"));  //零售价，批发价
+                	   }
+                       //返回真实字段
+                	   
+                		  String PriceField ="RetailSales";
+                		  sql ="select  dbo.GetCustPriceTypeOfFieldName('"+PriceType+"') PriceType";
+                		  
+                		  List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql);
+                		  
+                		  System.out.println("价格类型字段："+String.valueOf(custPriceType.get(0).get("PriceType")));
+                		  
+                		  if(custPriceType.get(0).get("PriceType") !=null && !"null".equals(custPriceType.get(0).get("PriceType")) && !"".equals(String.valueOf(custPriceType.get(0).get("PriceType")))){
+                			  PriceField =String.valueOf(custPriceType.get(0).get("PriceType"));
+                		  }
+                			String DiscountRate="0";
+                			
+                			if(cust.get(0).get("DiscountRate") !=null && !"".equals(String.valueOf(cust.get(0).get("DiscountRate"))) && !"null".equalsIgnoreCase(String.valueOf(cust.get(0).get("DiscountRate")))){
+                				DiscountRate =String.valueOf(cust.get(0).get("DiscountRate"));
+                			}
+                			
+                			sb =new StringBuffer();
+                			sb.append("select GoodsID,Code,Name,GroupID,RetailSales,"+PriceField+" UnitPrice, Discount=0.0,DiscountRate="+DiscountRate+", Quantity=0,Amount=0  from Goods where GoodsID = '"+String.valueOf(temp.get("GoodsID"))+"'");
+                			List<Map<String, Object>> lg =commonDao.findForJdbc(sb.toString());
+                			for(int i2=0;i2< lg.size(); i2++){
+                				Map<String,Object> map2= lg.get(i2);
+                				
+                				sql="select a.GoodsID,a.ColorID,c.Color from GoodsColor a join Color c on a.ColorID=c.ColorID where a.GoodsID =? ";
+                				List<Map<String, Object>> color=commonDao.findForJdbc(sql,String.valueOf(map2.get("GoodsID")));
+                				for(int j2 =0;j2<color.size();j2++){ //第个颜色包三个属性 一个颜色 一个map
+                					
+                					Map<String,Object> datamap=new LinkedHashMap<>();
+                					
+                					Map<String,Object> m2=color.get(j2);
+                					datamap.put("GoodsID", String.valueOf(map2.get("GoodsID")));
+                					datamap.put("Code", String.valueOf(map2.get("Code")));
+                					datamap.put("Name", String.valueOf(map2.get("Name")));
+                					datamap.put("GroupID", String.valueOf(map2.get("GroupID")));
+                					datamap.put("RetailSales", new BigDecimal(String.valueOf(map2.get("RetailSales"))).setScale(2,BigDecimal.ROUND_DOWN));
+                					datamap.put("Discount", new BigDecimal(String.valueOf(map2.get("Discount"))).setScale(2,BigDecimal.ROUND_DOWN));
+                					if(!"".equals(String.valueOf(map2.get("UnitPrice"))) && map2.get("UnitPrice") !=null && !"null".equals(String.valueOf(map2.get("UnitPrice"))))
+                					{	
+                					datamap.put("UnitPrice", new BigDecimal(String.valueOf(map2.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+                					}else{
+                						datamap.put("UnitPrice","");
+                					}
+                					if(!"".equals(String.valueOf(map2.get("DiscountRate"))) && map2.get("DiscountRate") !=null && !"null".equals(String.valueOf(map2.get("DiscountRate"))))
+                					{
+                					datamap.put("DiscountRate", new BigDecimal(String.valueOf(map2.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+                					if(!"".equals(String.valueOf(map2.get("UnitPrice"))) && map2.get("UnitPrice") !=null && !"null".equals(String.valueOf(map2.get("UnitPrice")))){
+                						if(new BigDecimal(String.valueOf(map2.get("DiscountRate"))).compareTo(BigDecimal.ZERO) !=0 ){
+                							System.out.println("进入此方法了a");
+                							datamap.put("Amount",new BigDecimal(String.valueOf(map2.get("UnitPrice"))).multiply(new BigDecimal(String.valueOf(map2.get("DiscountRate")))).divide(new BigDecimal(10.0)).setScale(2,BigDecimal.ROUND_DOWN));	
+                								
+                						}else{
+                							 System.out.println("进入此方法了b");
+                							datamap.put("Amount",new BigDecimal(String.valueOf(map2.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+                						}
+                						//数量默认为1 ，就单价 * 折扣，就可以了，不为1  就不一样
+                					}
+                					
+                					
+                					}else{
+                						datamap.put("DiscountRate","");	
+                					}
+                					
+                					 System.out.println("货号："+String.valueOf(datamap.get("Code"))+"\t"+"单价："
+                					 +String.valueOf(datamap.get("UnitPrice"))+"\t"+"折扣："
+                					 + String.valueOf(datamap.get("DiscountRate"))	 
+                					 );
+                					
+                					if(String.valueOf(map.get("Quantity")).equals("0")){
+                						datamap.put("Quantity", "");
+                					}else{
+                						datamap.put("Quantity", String.valueOf(map.get("Quantity")));
+                					}
+                					
+                					
+                					
+                					if(new BigDecimal(String.valueOf(datamap.get("Amount"))).compareTo(BigDecimal.ZERO) ==0){
+                						datamap.put("Amount", "");
+                					}
+                					//else{
+                					//	datamap.put("Amount",  new BigDecimal(String.valueOf(datamap.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+                					//}
+                				
+                					datamap.put("Quantity", 1);  //单据界面 扫，默认为1吧
+                					
+                					
+                					
+                					
+                					datamap.put("ColorID", String.valueOf(m2.get("ColorID")));
+                					datamap.put("Color", String.valueOf(m2.get("Color")));
+                					datamap.put("img", "");
+                					
+                					List<Map<String, Object>> sizetitle =new ArrayList<>();
+                					List<Map<String, Object>> sizeData =new ArrayList<>();
+                					List<Map<String, Object>> right =new ArrayList<>();
+                					//--------------颜色----------------
+                					
+                					sql="select * from SizeGroupSize where SizeGroupID = ?";
+                					List<Map<String, Object>> sizels=commonDao.findForJdbc(sql,String.valueOf(map.get("GroupID")));
+                					for(int k=0;k< sizels.size();k++){ 
+                					
+                						Map<String,Object> m3=sizels.get(k);
+                					
+                						Map<String,Object> m4=new LinkedHashMap<String,Object>();//sizeData 的map
+                						Map<String,Object> st=new LinkedHashMap<String,Object>();
+                						st.put("field", "x_"+String.valueOf(m3.get("No")));
+                						st.put("title", String.valueOf(m3.get("Size")));
+                						sizetitle.add(st);
+                						//----------显示尺码列--------------
+                						//--------数据---------
+                						m4.put("GoodsID", String.valueOf(map.get("GoodsID")));
+                						m4.put("ColorID", String.valueOf(datamap.get("ColorID")));
+                						m4.put("Color", String.valueOf(datamap.get("Color")));
+                						m4.put("x", "x_"+String.valueOf(m3.get("No")));
+                						if(String.valueOf(temp.get("IndexNo")).equals(String.valueOf(m3.get("No")))) //尺码编号    因为在在单据界面 加，就默认数量为1 吧，后面加也再重新加数量修改
+                					    {
+                							m4.put("Quantity", 1);
+                							m4.put("Amount", new BigDecimal(String.valueOf(datamap.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+                					    }else{
+                					    	m4.put("Quantity", "");
+                					    	m4.put("Amount", "");
+                					    }
+                					
+                						
+                						if(!"".equals(String.valueOf(datamap.get("UnitPrice"))) && datamap.get("UnitPrice") !=null && !"null".equals(String.valueOf(datamap.get("UnitPrice"))))
+                						{	
+                						m4.put("UnitPrice", new BigDecimal(String.valueOf(datamap.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+                						
+                						}else{
+                							m4.put("UnitPrice","");
+                						}
+                						if(!"".equals(String.valueOf(datamap.get("DiscountRate"))) && datamap.get("DiscountRate") !=null && !"null".equals(String.valueOf(datamap.get("DiscountRate"))))
+                						{
+                							m4.put("DiscountRate", new BigDecimal(String.valueOf(datamap.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+                							
+                						}else{
+                							m4.put("DiscountRate","");	
+                						}
+                						
+                						
+                						
+                						m4.put("SizeID", String.valueOf(m3.get("SizeID")));
+                						m4.put("Size", String.valueOf(m3.get("Size")));
+                						
+                						sizeData.add(m4);
+                					}
+                					
+                					//for(int n=0;n<2;n++){
+                						Map<String,Object> m5=new LinkedHashMap<String,Object>();
+                						m5.put("text", "删除");
+                						
+                						
+                    					/*	m5.put("onPress", "() => {"+
+                    		                                  "  modal.toast({ "+
+                    		                                  "      message: '删除',"+
+                    		                                  "      duration: 0.3 "+
+                    		                                  "  });"+
+                    		                                "}"); */
+                    						
+                    						Map<String,Object> styleMap=new LinkedHashMap<String,Object>();
+                    						styleMap.put("backgroundColor", "#F4333C");
+                    						styleMap.put("color", "white");
+                    						m5.put("style", styleMap);
+                						
+                						
+                						right.add(m5);
+                					//}
+                					
+                					datamap.put("sizetitle", sizetitle);
+                					datamap.put("sizeData", sizeData);
+                					datamap.put("right", right);
+                					
+                					addItem.add(datamap);
+                				}
+                			
+                				
+                			
+                				
+                			
+                				
+                				
+                			}
+                        
+                        }
+                        
+                          
+                        
+                        if (addItem.size() > 0) {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (addItem.size() <= 0) {
+                // 均色均码识别
+                int colorCount = commonDao.getDataToInt(" select count(1) from color ");
+                int sizeCount = commonDao.getDataToInt(" select count(1) from size ");
+                if (colorCount == 1 && sizeCount == 1) {
+                    StringBuffer sb = new StringBuffer();
+                    sb.append(" select ? BarCode,g.Name GoodsName,gt.Code GoodsTypeCode,g.PresentFlag,g.DiscountFlag,(select Color from Color) Color,(select Size from Size) Size,isnull(g.Discount,10) Discount,g.GoodsID,(select ColorID from Color) ColorID,(select SizeID from Size) SizeID,")
+                            .append(" g.Code GoodsCode,(select Color from Color) ColorName,(select Size from Size) SizeName, (select No from Color) ColorCode, (select No from Size) SizeCode,(select No from SizeGroup) IndexNo,").append("isnull(").append(column)
+                            .append(",0) UnitPrice,isnull(g.RetailSales,0) RetailSales,(select SizeGroupID from SizeGroup) SizeGroupID from goods g ").append(" left join GoodsType gt on gt.GoodsTypeID = g.GoodsTypeID where g.code = ? ");
+                  //  addItem = commonDao.findForJdbc(sb.toString(), barCode, barCode);
+                    
+                    List<Map<String,Object>> ls = commonDao.findForJdbc(sb.toString(), barCode, barCode);    //证明已经存在了
+                    temp =ls.get(0);
+                    
+                    //重新封装  货品颜色 
+                    if(!"".equals(customerId) && customerId !=null){
+                   sql="select CustomerID,Customer,"+TypeStr+" PriceType , "+DiscountRateStr+" DiscountRate  from Customer where CustomerID = ? ";
+                  // List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql,customerId);
+                   List<Map<String,Object>> cust=	commonDao.findForJdbc(sql,customerId);
+            	   
+            	   System.out.println("价格类型："+String.valueOf(cust.get(0).get("PriceType")));
+            	   System.out.println("折扣："+String.valueOf(cust.get(0).get("DiscountRate")));
+            	   
+            	   String PriceType="零售价";
+            	   if(!"".equals(String.valueOf(cust.get(0).get("PriceType"))) && cust.get(0).get("PriceType") !=null && !"null".equals(String.valueOf(cust.get(0).get("PriceType")))){
+            		   PriceType =String.valueOf(cust.get(0).get("PriceType"));  //零售价，批发价
+            	   }
+                   //返回真实字段
+            	   
+            		  String PriceField ="RetailSales";
+            		  sql ="select  dbo.GetCustPriceTypeOfFieldName('"+PriceType+"') PriceType";
+            		  
+            		  List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql);
+            		  
+            		  System.out.println("价格类型字段："+String.valueOf(custPriceType.get(0).get("PriceType")));
+            		  
+            		  if(custPriceType.get(0).get("PriceType") !=null && !"null".equals(custPriceType.get(0).get("PriceType")) && !"".equals(String.valueOf(custPriceType.get(0).get("PriceType")))){
+            			  PriceField =String.valueOf(custPriceType.get(0).get("PriceType"));
+            		  }
+            			String DiscountRate="0";
+            			
+            			if(cust.get(0).get("DiscountRate") !=null && !"".equals(String.valueOf(cust.get(0).get("DiscountRate"))) && !"null".equalsIgnoreCase(String.valueOf(cust.get(0).get("DiscountRate")))){
+            				DiscountRate =String.valueOf(cust.get(0).get("DiscountRate"));
+            			}
+            			
+            			sb =new StringBuffer();
+            			sb.append("select GoodsID,Code,Name,GroupID,RetailSales,"+PriceField+" UnitPrice, Discount=0.0,DiscountRate="+DiscountRate+", Quantity=0,Amount=0  from Goods where GoodsID = '"+String.valueOf(temp.get("GoodsID"))+"'");
+            			List<Map<String, Object>> lg =commonDao.findForJdbc(sb.toString());
+            			for(int i=0;i< lg.size(); i++){
+            				Map<String,Object> map= lg.get(i);
+            				
+            				sql="select a.GoodsID,a.ColorID,c.Color from GoodsColor a join Color c on a.ColorID=c.ColorID where a.GoodsID =? ";
+            				List<Map<String, Object>> color=commonDao.findForJdbc(sql,String.valueOf(map.get("GoodsID")));
+            				for(int j2 =0;j2<color.size();j2++){ //第个颜色包三个属性 一个颜色 一个map
+            					
+            					Map<String,Object> datamap=new LinkedHashMap<>();
+            					
+            					Map<String,Object> m2=color.get(j2);
+            					datamap.put("GoodsID", String.valueOf(map.get("GoodsID")));
+            					datamap.put("Code", String.valueOf(map.get("Code")));
+            					datamap.put("Name", String.valueOf(map.get("Name")));
+            					datamap.put("GroupID", String.valueOf(map.get("GroupID")));
+            					datamap.put("RetailSales", new BigDecimal(String.valueOf(map.get("RetailSales"))).setScale(2,BigDecimal.ROUND_DOWN));
+            					datamap.put("Discount", new BigDecimal(String.valueOf(map.get("Discount"))).setScale(2,BigDecimal.ROUND_DOWN));
+            					if(!"".equals(String.valueOf(map.get("UnitPrice"))) && map.get("UnitPrice") !=null && !"null".equals(String.valueOf(map.get("UnitPrice"))))
+            					{	
+            					datamap.put("UnitPrice", new BigDecimal(String.valueOf(map.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+            					}else{
+            						datamap.put("UnitPrice","");
+            					}
+            					if(!"".equals(String.valueOf(map.get("DiscountRate"))) && map.get("DiscountRate") !=null && !"null".equals(String.valueOf(map.get("DiscountRate"))))
+            					{
+            					datamap.put("DiscountRate", new BigDecimal(String.valueOf(map.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+            					if(!"".equals(String.valueOf(map.get("UnitPrice"))) && map.get("UnitPrice") !=null && !"null".equals(String.valueOf(map.get("UnitPrice")))){
+            						if(new BigDecimal(String.valueOf(map.get("DiscountRate"))).compareTo(BigDecimal.ZERO) !=0 ){
+            							System.out.println("进入此方法了a");
+            							datamap.put("Amount",new BigDecimal(String.valueOf(map.get("UnitPrice"))).multiply(new BigDecimal(String.valueOf(map.get("DiscountRate")))).divide(new BigDecimal(10.0)).setScale(2,BigDecimal.ROUND_DOWN));	
+            								
+            						}else{
+            							 System.out.println("进入此方法了b");
+            							datamap.put("Amount",new BigDecimal(String.valueOf(map.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+            						}
+            						//数量默认为1 ，就单价 * 折扣，就可以了，不为1  就不一样
+            					}
+            					
+            					
+            					}else{
+            						datamap.put("DiscountRate","");	
+            					}
+            					
+            					 System.out.println("货号："+String.valueOf(datamap.get("Code"))+"\t"+"单价："
+            					 +String.valueOf(datamap.get("UnitPrice"))+"\t"+"折扣："
+            					 + String.valueOf(datamap.get("DiscountRate"))	 
+            					 );
+            					
+            					if(String.valueOf(map.get("Quantity")).equals("0")){
+            						datamap.put("Quantity", "");
+            					}else{
+            						datamap.put("Quantity", String.valueOf(map.get("Quantity")));
+            					}
+            					
+            					
+            					
+            					if(new BigDecimal(String.valueOf(datamap.get("Amount"))).compareTo(BigDecimal.ZERO) ==0){
+            						datamap.put("Amount", "");
+            					}
+            					//else{
+            					//	datamap.put("Amount",  new BigDecimal(String.valueOf(datamap.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+            					//}
+            				
+            					datamap.put("Quantity", 1);  //单据界面 扫，默认为1吧
+            					
+            					
+            					
+            					
+            					datamap.put("ColorID", String.valueOf(m2.get("ColorID")));
+            					datamap.put("Color", String.valueOf(m2.get("Color")));
+            					datamap.put("img", "");
+            					
+            					List<Map<String, Object>> sizetitle =new ArrayList<>();
+            					List<Map<String, Object>> sizeData =new ArrayList<>();
+            					List<Map<String, Object>> right =new ArrayList<>();
+            					//--------------颜色----------------
+            					
+            					sql="select * from SizeGroupSize where SizeGroupID = ?";
+            					List<Map<String, Object>> sizels=commonDao.findForJdbc(sql,String.valueOf(map.get("GroupID")));
+            					for(int k=0;k< sizels.size();k++){ 
+            					
+            						Map<String,Object> m3=sizels.get(k);
+            					
+            						Map<String,Object> m4=new LinkedHashMap<String,Object>();//sizeData 的map
+            						Map<String,Object> st=new LinkedHashMap<String,Object>();
+            						st.put("field", "x_"+String.valueOf(m3.get("No")));
+            						st.put("title", String.valueOf(m3.get("Size")));
+            						sizetitle.add(st);
+            						//----------显示尺码列--------------
+            						//--------数据---------
+            						m4.put("GoodsID", String.valueOf(map.get("GoodsID")));
+            						m4.put("ColorID", String.valueOf(datamap.get("ColorID")));
+            						m4.put("Color", String.valueOf(datamap.get("Color")));
+            						m4.put("x", "x_"+String.valueOf(m3.get("No")));
+            						if(String.valueOf(temp.get("IndexNo")).equals(String.valueOf(m3.get("No")))) //尺码编号    因为在在单据界面 加，就默认数量为1 吧，后面加也再重新加数量修改
+            					    {
+            							m4.put("Quantity", 1);
+            							m4.put("Amount", new BigDecimal(String.valueOf(datamap.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+            					    }else{
+            					    	m4.put("Quantity", "");
+            					    	m4.put("Amount", "");
+            					    }
+            					
+            						
+            						if(!"".equals(String.valueOf(datamap.get("UnitPrice"))) && datamap.get("UnitPrice") !=null && !"null".equals(String.valueOf(datamap.get("UnitPrice"))))
+            						{	
+            						m4.put("UnitPrice", new BigDecimal(String.valueOf(datamap.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+            						
+            						}else{
+            							m4.put("UnitPrice","");
+            						}
+            						if(!"".equals(String.valueOf(datamap.get("DiscountRate"))) && datamap.get("DiscountRate") !=null && !"null".equals(String.valueOf(datamap.get("DiscountRate"))))
+            						{
+            							m4.put("DiscountRate", new BigDecimal(String.valueOf(datamap.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+            							
+            						}else{
+            							m4.put("DiscountRate","");	
+            						}
+            						
+            						
+            						
+            						m4.put("SizeID", String.valueOf(m3.get("SizeID")));
+            						m4.put("Size", String.valueOf(m3.get("Size")));
+            						
+            						sizeData.add(m4);
+            					}
+            					
+            				//	for(int n=0;n<2;n++){
+            						Map<String,Object> m5=new LinkedHashMap<String,Object>();
+            						m5.put("text", "删除");
+            					
+            						/*	m5.put("onPress", "() => {"+
+	                                  "  modal.toast({ "+
+	                                  "      message: '删除',"+
+	                                  "      duration: 0.3 "+
+	                                  "  });"+
+	                                "}"); */
+					
+				     	  Map<String,Object> styleMap=new LinkedHashMap<String,Object>();
+					     styleMap.put("backgroundColor", "#F4333C");
+					     styleMap.put("color", "white");
+					      m5.put("style", styleMap);
+            						
+            						right.add(m5);
+            				//	}
+            					
+            					datamap.put("sizetitle", sizetitle);
+            					datamap.put("sizeData", sizeData);
+            					datamap.put("right", right);
+            					
+            					addItem.add(datamap);
+            				}
+            			
+            				
+            			
+            				
+            			
+            				
+            				
+            			}
+                    
+                    }
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    if (addItem.size() <= 0) {
+                        j.setObj(null);
+                        throw new BusinessException("未找到此条码[" + barCode + "]");
+                    }
+                } else {
+                    j.setObj(null);
+                    throw new BusinessException("未找到此条码[" + barCode + "]");
+                }
+            }
+            j.setObj(addItem.get(0));
+        } catch (Exception e) {
+            j.setSuccess(false);
+            j.setMsg(e.getMessage());
+            SysLogger.error(e.getMessage(), e);
+        }
+        return j;
+    }
+    
+    
+    /**
      * 解析箱条码(通过箱条码获取货品明细信息)
      * 
      * @param req
@@ -1967,7 +2708,129 @@ public class SelectController extends BaseController {
         column = "g." + column;
         return column;
     }
-
+    
+    //type 当客户不为空后 ，Type 为字段名
+    private Map<String,Object> getTypeColumnNew(String deptId, String customerId, String type) {
+        String column = null;
+        String data = null;
+        String Discount="";
+        String DiscountRate="0";
+        StringBuffer sb = new StringBuffer();
+        if (customerId != null && !"".equals(customerId) && !customerId.isEmpty()) {
+            if (type != null) {
+                sb.append("select ").append(type).append(" from customer where customerId = '").append(customerId).append("'");
+            } else {
+                sb.append("select PriceType from supplier where supplierId = '").append(customerId).append("'");
+            }
+            data = String.valueOf(commonDao.getData(sb.toString().trim()));
+        } else if (type != null && type.equals("参考进价")) {
+            data = "参考进价";
+        } else if (type != null && type.equalsIgnoreCase("possales")) {
+            data = String.valueOf(commonDao.getData(" select PriceType from Department where DepartmentID = '"+deptId+"' "));
+        } else {
+            data = "零售价";
+        }
+        if (null == data || "".equals(data) || "null".equals(data)) {
+            return null;
+        }
+        if (data.contains("零售价")) {
+            if ("零售价".equals(data)) {
+                column = "RetailSales";
+                if(customerId != null && !"".equals(customerId) && !customerId.isEmpty()){
+                if("PriceType".equals(type)){
+                	DiscountRate ="DiscountRate";
+                }else if("OrderPriceType".equals(type)){
+                	DiscountRate ="OrderDiscount";
+                }else if("AllotPriceType".equals(type)){
+                	DiscountRate ="AllotDiscount";
+                }else if("ReplenishType".equals(type)){
+                	DiscountRate ="ReplenishDiscount";
+                }
+                }
+                
+            } else if ("零售价2".equals(data)) {
+                column = "RetailSales1";
+                if(customerId != null && !"".equals(customerId) && !customerId.isEmpty()){
+                    if("PriceType".equals(type)){
+                    	DiscountRate ="DiscountRate";
+                    }else if("OrderPriceType".equals(type)){
+                    	DiscountRate ="OrderDiscount";
+                    }else if("AllotPriceType".equals(type)){
+                    	DiscountRate ="AllotDiscount";
+                    }else if("ReplenishType".equals(type)){
+                    	DiscountRate ="ReplenishDiscount";
+                    }
+                    }
+            } else {
+                column = "RetailSales" + (Integer.parseInt(data.substring(data.length() - 1)) - 1);
+                if(customerId != null && !"".equals(customerId) && !customerId.isEmpty()){
+                    if("PriceType".equals(type)){
+                    	DiscountRate ="DiscountRate";
+                    }else if("OrderPriceType".equals(type)){
+                    	DiscountRate ="OrderDiscount";
+                    }else if("AllotPriceType".equals(type)){
+                    	DiscountRate ="AllotDiscount";
+                    }else if("ReplenishType".equals(type)){
+                    	DiscountRate ="ReplenishDiscount";
+                    }
+                    }
+            }
+        } else if (data.contains("批发价")) {
+            if ("批发价".equals(data)) {
+                column = "TradePrice";
+                if(customerId != null && !"".equals(customerId) && !customerId.isEmpty()){
+                    if("PriceType".equals(type)){
+                    	DiscountRate ="DiscountRate";
+                    }else if("OrderPriceType".equals(type)){
+                    	DiscountRate ="OrderDiscount";
+                    }else if("AllotPriceType".equals(type)){
+                    	DiscountRate ="AllotDiscount";
+                    }else if("ReplenishType".equals(type)){
+                    	DiscountRate ="ReplenishDiscount";
+                    }
+                    }
+                
+            } else if ("批发价2".equals(data)) {
+            	
+                column = "SalesPrice1";
+                
+                if(customerId != null && !"".equals(customerId) && !customerId.isEmpty()){
+                    if("PriceType".equals(type)){
+                    	DiscountRate ="DiscountRate";
+                    }else if("OrderPriceType".equals(type)){
+                    	DiscountRate ="OrderDiscount";
+                    }else if("AllotPriceType".equals(type)){
+                    	DiscountRate ="AllotDiscount";
+                    }else if("ReplenishType".equals(type)){
+                    	DiscountRate ="ReplenishDiscount";
+                    }
+                    }
+                
+            } else {
+                column = "SalesPrice" + (Integer.parseInt(data.substring(data.length() - 1)) - 1);
+                if(customerId != null && !"".equals(customerId) && !customerId.isEmpty()){
+                    if("PriceType".equals(type)){
+                    	DiscountRate ="DiscountRate";
+                    }else if("OrderPriceType".equals(type)){
+                    	DiscountRate ="OrderDiscount";
+                    }else if("AllotPriceType".equals(type)){
+                    	DiscountRate ="AllotDiscount";
+                    }else if("ReplenishType".equals(type)){
+                    	DiscountRate ="ReplenishDiscount";
+                    }
+                    }
+            }
+        } else if ("参考进价".equals(data)) {
+            column = "PurchasePrice";
+        }
+        column = "g." + column+"";
+        
+        Map<String,Object> map =new LinkedHashMap<>();
+        map.put("column", column);
+        map.put("DiscountRate", DiscountRate);
+        
+        return map;
+    }
     /**
      * 根据货号或条码获取对应的货品ID
      * 
