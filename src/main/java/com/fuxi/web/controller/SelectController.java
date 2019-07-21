@@ -480,6 +480,7 @@ public class SelectController extends BaseController {
             int page = oConvertUtils.getInt(req.getParameter("currPage"));
             StringBuffer sb = new StringBuffer();
             sb.append(" select PaymentTypeID,PaymentType Name from PaymentType gt where gt.type = '收款' and gt.PaymentType like '%").append(param).append("%' order by len(PaymentType) asc ");
+            System.out.println("sql语句："+sb.toString());
             List list = commonDao.findForJdbc(sb.toString(), page, 15);
             j.setObj(list);
         } catch (Exception e) {

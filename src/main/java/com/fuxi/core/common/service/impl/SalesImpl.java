@@ -685,7 +685,11 @@ public class SalesImpl implements SalesService {
     	    	   commonDao.executeSql(sql);
     	    	   
     	    	   if (lastARAmount != null && lastARAmount.compareTo(BigDecimal.ZERO) != 0 && direction != -1) {
-    	               // 收款金额不为空的时候生成收款单
+    	              
+    	    		   sql ="update sales set ReceivalAmount ="+lastARAmount+",PaymentTypeID="+paymentTypeId+" where salesid = '"+SalesID+"'";
+    	    		   System.out.println("更新收款语句："+sql);
+    	    	    	  commonDao.executeSql(sql);
+    	    		   // 收款金额不为空的时候生成收款单
     	               String receivalType = "货款";
     	               BigDecimal arAmount = new BigDecimal(String.valueOf(commonDao.getData(" select AmountSum from sales where salesId = ? ", SalesID)));
     	               generalReceival(deptCode, customerid, departmentid, employeeId, paymentTypeIdStr, arAmount, lastARAmount, No, SalesID, brandId, receivalType, client);

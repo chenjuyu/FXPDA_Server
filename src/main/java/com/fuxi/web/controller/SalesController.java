@@ -136,8 +136,8 @@ public class SalesController extends BaseController {
           String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
           StringBuffer sb = new StringBuffer();
           sb.append(
-                  " select so.SalesID, de.Department,so.DepartmentID , No,so.Type,so.CustomerID,so.EmployeeID,LastNeedRAmount='', CONVERT(varchar(10), Date, 121) Date,isnull(QuantitySum,0) QuantitySum," + "AmountSum,AuditFlag,Convert(varchar(10),so.AuditDate,121) AuditDate,Convert(varchar(19),so.madebydate,121) MadeByDate,(select Name from Employee where employeeId = so.EmployeeId) Name,"
-                          + "isnull(so.Memo,'') Memo,(select Customer from Customer where CustomerId = so.CustomerId) Customer," + "(select Brand from Brand where BrandId = so.BrandId) Brand,(select no from salesOrder where salesorderId = so.salesorderId) OrderNo from Sales so  ")
+                  " select so.SalesID, de.Department,so.DepartmentID ,so.PaymentTypeID,so.ReceivalAmount, No,so.Type,so.CustomerID,so.EmployeeID,LastNeedRAmount='', CONVERT(varchar(10), Date, 121) Date,isnull(QuantitySum,0) QuantitySum," + "AmountSum,AuditFlag,Convert(varchar(10),so.AuditDate,121) AuditDate,Convert(varchar(19),so.madebydate,121) MadeByDate,(select Name from Employee where employeeId = so.EmployeeId) Name,"
+                  +"(select PaymentType from PaymentType where PaymentTypeID=so.PaymentTypeID) PaymentType ,"        + "isnull(so.Memo,'') Memo,(select Customer from Customer where CustomerId = so.CustomerId) Customer," + "(select Brand from Brand where BrandId = so.BrandId) Brand,(select no from salesOrder where salesorderId = so.salesorderId) OrderNo from Sales so  ")
                   .append(" left join Department de on de.DepartmentID = so.DepartmentID where so.DepartmentID in (").append(userRight).append(") and direction = '1'  ");
           // 按条件查询
           if (null != audit && "0".equals(audit)) {
@@ -178,6 +178,11 @@ public class SalesController extends BaseController {
         		  listmap.put("AmountSum", new BigDecimal(String.valueOf(listmap.get("AmountSum"))).setScale(2,BigDecimal.ROUND_DOWN)); 
         	  }else{
         		  listmap.put("AmountSum", ""); 
+        	  }
+        	  if(!"".equals(String.valueOf(listmap.get("ReceivalAmount"))) && listmap.get("ReceivalAmount") !=null){
+        		  listmap.put("ReceivalAmount", new BigDecimal(String.valueOf(listmap.get("ReceivalAmount"))).setScale(2,BigDecimal.ROUND_DOWN)); 
+        	  }else{
+        		  listmap.put("ReceivalAmount", ""); 
         	  }
         	  
         	  
