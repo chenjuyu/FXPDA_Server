@@ -448,8 +448,19 @@ public class SalesImpl implements SalesService {
     	            
     	               QuantitySum =QuantitySum+Integer.parseInt(String.valueOf(map.get("Quantity"))); //总数数量
     	               
-    	               AmountSum.add((map.get("Amount")==null || "".equals(map.get("Discount")))?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
-    	               Discount.add((map.get("Discount")==null || "".equals(map.get("Discount"))) ?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Discount")))).setScale(2,BigDecimal.ROUND_DOWN);
+    	               System.out.println("Amount:"+String.valueOf((map.get("Amount"))));
+    	               System.out.println("Discount:"+String.valueOf((map.get("Discount"))));
+    	               
+    	               if(map.get("Amount") !=null && !"".equals(String.valueOf((map.get("Amount")))) && !"null".equals(String.valueOf(map.get("Amount"))) ){
+    	            	   AmountSum.add(new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
+    	               }
+    	               
+    	               if(map.get("Discount") !=null && !"".equals(String.valueOf(map.get("Discount"))) && !"null".equals(String.valueOf(map.get("Discount")))){
+    	            	   Discount.add(new BigDecimal(String.valueOf(map.get("Discount")))).setScale(2, BigDecimal.ROUND_DOWN);
+    	               }
+    	               
+    	               //AmountSum.add((map.get("Amount")==null || "".equals(map.get("Discount")))?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
+    	               //Discount.add((map.get("Discount")==null || "".equals(map.get("Discount"))) ?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Discount")))).setScale(2,BigDecimal.ROUND_DOWN);
     	               
     	               
     	               
