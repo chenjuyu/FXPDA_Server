@@ -730,17 +730,26 @@ public class SalesController extends BaseController {
             String direction = oConvertUtils.getString(req.getParameter("direction"));
             String SalesID = oConvertUtils.getString(req.getParameter("SalesID"));
             String departmentid = oConvertUtils.getString(req.getParameter("departmentid"));
+            int AuditFlag =Integer.parseInt(req.getParameter("AuditFlag"));
+            
             if ("-1".equals(direction)) {
-                // 调用存储过程生成进仓单
-                commonDao.getStock(97, 1, SalesID, departmentid, client.getUserName());
+                // 调用存储过程生成进仓单 1
+                commonDao.getStock(97, AuditFlag, SalesID, departmentid, client.getUserName());
             } else if ("1".equals(direction)) {
-                // 调用存储过程生成出仓单
-                commonDao.getStock(30, 1, SalesID, departmentid, client.getUserName());
+                // 调用存储过程生成出仓单  1
+                commonDao.getStock(30, AuditFlag, SalesID, departmentid, client.getUserName());
             }
             // 更新主表
             StringBuilder sb = new StringBuilder();
+            if(AuditFlag==1){
             sb.append(" Update Sales set AuditDate = getdate(), Delivered=1, Year = '").append(DataUtils.getYear()).append("' , Month = '").append(DataUtils.getStringMonth()).append("' ").append(" where SalesID = '").append(SalesID).append("' ; ");
+            }else if(AuditFlag==0){
+            sb.append(" Update Sales set Audit=Null,AuditFlag=0,AuditDate=Null , Delivered=0 ").append(" where SalesID = '").append(SalesID).append("' ; ");
+                  	
+            }
             commonDao.executeSql(sb.toString());
+            j.setSuccess(true);
+            j.setMsg("执行成功");
         } catch (Exception e) {
             j.setSuccess(false);
             j.setMsg(e.getMessage());

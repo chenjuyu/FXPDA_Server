@@ -669,8 +669,13 @@ public class CommonController extends BaseController {
     public synchronized AjaxJson uploadImages(HttpServletRequest request, HttpServletResponse response) throws Exception {
         AjaxJson j = new AjaxJson();
         try {
+        	//System.out.println("上传图片时带过来的salesID:"+request.getParameter("SalesID"));
+        	
+        	//System.out.println("request对象："+request.toString());
+        	String SalesID =request.getParameter("SalesID");
             request.setCharacterEncoding("UTF-8");
             response.setCharacterEncoding("UTF-8");
+            
             
             // String temp =
             // request.getSession().getServletContext().getRealPath("/") +
@@ -710,7 +715,8 @@ public class CommonController extends BaseController {
                     // 写入文件
                     File fNew = new File(loadpath, name);
                     try {
-                        item.write(fNew);
+                        item.write(fNew);  //name.substring(name.indexOf("."), name.length()) 拿后缀名
+                        renameFile(loadpath,name,SalesID+name.substring(name.indexOf("."), name.length())); //把文件 名改为传过来的名字，本地存在就删除，再命名
                         // 生成指定大小的图片
                         // zoomImage(fNew.getAbsolutePath(),
                         // fNew.getAbsolutePath(), 480, 800);
@@ -722,13 +728,41 @@ public class CommonController extends BaseController {
                 }
             }
             j.setObj(fileItems);
-            j.setMsg("上传成功");} catch (Exception e) {
+            j.setMsg("上传成功");
+            } catch (Exception e) {
             j.setSuccess(false);
             j.setMsg(e.getMessage());
             SysLogger.error(e.getMessage(), e);
         }
         return j;
     }
+    
+    /** *//**文件重命名 
+     * @param path 文件目录 
+     * @param oldname  原来的文件名 
+     * @param newname 新文件名 
+     */ 
+     public void renameFile(String path,String oldname,String newname){ 
+         if(!oldname.equals(newname)){//新的文件名和以前文件名不同时,才有必要进行重命名 
+             File oldfile=new File(path+"/"+oldname); 
+             File newfile=new File(path+"/"+newname); 
+             if(!oldfile.exists()){
+                 return;//重命名文件不存在
+             }
+             if(newfile.exists())//若在该目录下已经有一个文件和新文件名相同，则不允许重命名 
+              //   System.out.println(newname+"已经存在！"); 
+             {
+            	 newfile.delete(); //先删除旧的
+            	 oldfile.renameTo(newfile);
+             }
+             
+             else{ 
+                 oldfile.renameTo(newfile); 
+             } 
+         }else{
+             System.out.println("新文件名和旧文件名相同...");
+         }
+     }
 
     /**
      * 模糊查询仓库信息(获取仓库)
