@@ -668,6 +668,7 @@ public class CommonController extends BaseController {
     @ResponseBody
     public synchronized AjaxJson uploadImages(HttpServletRequest request, HttpServletResponse response) throws Exception {
         AjaxJson j = new AjaxJson();
+        String url=null;
         try {
         	//System.out.println("上传图片时带过来的salesID:"+request.getParameter("SalesID"));
         	
@@ -717,6 +718,7 @@ public class CommonController extends BaseController {
                     try {
                         item.write(fNew);  //name.substring(name.indexOf("."), name.length()) 拿后缀名
                         renameFile(loadpath,name,SalesID+name.substring(name.indexOf("."), name.length())); //把文件 名改为传过来的名字，本地存在就删除，再命名
+                        url =SalesID+name.substring(name.indexOf("."), name.length());
                         // 生成指定大小的图片
                         // zoomImage(fNew.getAbsolutePath(),
                         // fNew.getAbsolutePath(), 480, 800);
@@ -727,7 +729,8 @@ public class CommonController extends BaseController {
                     }
                 }
             }
-            j.setObj(fileItems);
+            //j.setObj(fileItems);
+            j.setObj(url);
             j.setMsg("上传成功");
             } catch (Exception e) {
             j.setSuccess(false);
