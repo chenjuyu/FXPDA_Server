@@ -686,7 +686,7 @@ public class CommonController extends BaseController {
             System.out.println("loadpath=" + loadpath);
             DiskFileUpload fu = new DiskFileUpload();
             fu.setSizeMax(1024 * 1024 * 1024); // 设置允许用户上传文件大小,单位:字节
-            fu.setSizeThreshold(40960); // 设置最多只允许在内存中存储的数据,单位:字节
+            fu.setSizeThreshold(40960000); // 设置最多只允许在内存中存储的数据,单位:字节40960
             // fu.setRepositoryPath(temp); //
             // 设置一旦文件大小超过getSizeThreshold()的值时数据存放在硬盘的目录
             // 开始读取上传信息
