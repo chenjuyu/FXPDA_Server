@@ -46,7 +46,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
 
-/**
+/*
  * Title: CommonController Description: 通用逻辑方法控制器[请求时无需验证Client是否过期]
  * 
  * @author LYJ
@@ -730,6 +730,11 @@ public class CommonController extends BaseController {
                 }
             }
             //j.setObj(fileItems);
+            String path1 = request.getContextPath();
+            String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path1+"/";
+            
+            url=basePath+url;
+            
             j.setObj(url);
             j.setMsg("上传成功");
             } catch (Exception e) {

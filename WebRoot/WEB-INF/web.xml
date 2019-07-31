@@ -88,12 +88,25 @@
     <servlet-name>springMvc</servlet-name>
     <url-pattern>*.do</url-pattern>
   </servlet-mapping>
-  <!--
-    <servlet-mapping>
+ 
+  <servlet-mapping>
     <servlet-name>default</servlet-name>
-    <url-pattern>/upload/*</url-pattern>
-  </servlet-mapping> -->
-  
+    <url-pattern>*.js</url-pattern>
+  </servlet-mapping>
+   <!-- 需要直接访问图片 -->
+	<servlet-mapping>
+		<servlet-name>default</servlet-name>
+		<url-pattern>*.gif</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>default</servlet-name>
+		<url-pattern>*.jpg</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>default</servlet-name>
+		<url-pattern>*.png</url-pattern>
+	</servlet-mapping>
   <session-config>
     <session-timeout>60</session-timeout>
   </session-config>
