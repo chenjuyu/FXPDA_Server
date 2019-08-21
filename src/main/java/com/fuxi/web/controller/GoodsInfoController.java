@@ -42,11 +42,50 @@ public class GoodsInfoController extends BaseController {
     private GoodsInfoService goodsInfoService;
     
     
-    
+    @RequestMapping(params = "glist")
+    @ResponseBody
+    public AjaxJson glist(HttpServletRequest req){
+    	AjaxJson j=new AjaxJson();
+    	try{
+    	String Code=oConvertUtils.getString(req.getParameter("Code"));
+    	int page =Integer.parseInt(oConvertUtils.getString(req.getParameter("page")));
+    	List<Map<String,Object>> ls=goodsInfoService.goodslist(Code,page,15);
+    	if(ls.size()>0){
+    		j.setSuccess(true);
+    		j.setObj(ls);
+    	}else{
+    		j.setSuccess(true);
+    		j.setMsg("暂无数据");
+    	}
+    	}catch(Exception e){
+    		j.setSuccess(false);
+            j.setMsg(e.getMessage());
+            e.printStackTrace();
+    	}
+    	
+    return j;
+    }
+    //单个货品的详情，包含货品颜色
+    @RequestMapping(params = "goodsDetail")
+    @ResponseBody
+    public AjaxJson goodsDetail(HttpServletRequest req){
+    	AjaxJson j=new AjaxJson();
+    	try{
+    		String GoodsID =oConvertUtils.getString(req.getParameter("GoodsID"));
+    		//String SupplierID=oConvertUtils.getString(req.getParameter("SupplierID"));
+    		Map<String, Object> map=goodsInfoService.goodsColor(GoodsID, null, "采购", null);
+    		j.setAttributes(map);
+    		j.setSuccess(true);
+    	}catch(Exception e){
+    		j.setSuccess(false);
+    		j.setMsg(e.getMessage());
+    		e.printStackTrace();
+    	}
+    	return j;
+    }
     
     @RequestMapping(params = "goodslist")
     @ResponseBody
-    
     public AjaxJson goodslist(HttpServletRequest req){
     	
     	   Client client = ResourceUtil.getClientFromSession(req);
