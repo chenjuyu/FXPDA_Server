@@ -1,7 +1,9 @@
 package com.fuxi.core.common.service.impl;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,14 +112,27 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
         int count = commonDao.executeSql(" insert into GoodsColor(GoodsID,ColorID,Editor,ModifyDate) values(?,?,?,?) ", goodsId, colorId, userName, DataUtils.gettimestamp());
         return count;
     }
-
+  
     private void addGoodsColor(List<String> colors, String goodsId, String userName) throws Exception {
         for (int i = 0; i < colors.size(); i++) {
             if (colors.get(i) != null && !colors.get(i).isEmpty() && !"null".equalsIgnoreCase(colors.get(i))) {
+            	System.out.println("颜色记录条数："+checkgoodscolor(goodsId, colors.get(i)));
+            	if(checkgoodscolor(goodsId, colors.get(i)) ==null || checkgoodscolor(goodsId, colors.get(i))==""){
                 addGoodsColor(goodsId, colors.get(i), userName);
+            	}
             }
         }
     }
+    
+    //检查货品颜色是否存在
+    private Object checkgoodscolor(String gid,String cid){
+    	
+    	Object  obj=commonDao.getData("select ColorID from GoodsColor where GoodsID = '"+gid+"' and ColorID ='"+cid+"'");
+    	
+    	
+    	return obj;
+    }
+    
 
     @Override
     public int updateGoodsInfoMsg(String goodsId, String goodsSubType, String brandId, String brandSerialId, String kind, String age, String season, String supplierId, String supplierCode, String purchasePrice, String tradePrice, String retailSales, String retailSales1, String retailSales2,
@@ -490,6 +505,40 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
 		datamap.put("datalist", datalist);
 		
 		return datamap;
+	}
+
+	@Override
+	public String delgoods(String goodsid) {
+		// TODO Auto-generated method stub
+	   Object obj=commonDao.getData("select [dbo].[sys_CanDelBasedata]('"+goodsid+"',4,'')");
+	   if(obj==null || obj==""){
+		commonDao.executeSql("delete from goods where goodsid=?", goodsid);
+	   }
+	   String msg =String.valueOf(obj);
+	   if(msg==null || msg==""){
+		   msg="删除成功";
+	   }else{
+		   msg=msg+"有引用不能删除";
+	   }
+		
+		return msg;
+	}
+
+	@Override
+	public String audit(String GoodsID,int GoodsAuditFlag,Client client) {
+		// TODO Auto-generated method stub
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date date=new Date();
+		
+		String str="",msg="";
+		if(GoodsAuditFlag ==1){
+			str=str+",GoodsAudit='"+client.getUserName()+"',GoodsAuditDate='"+dateFormat.format(date)+"'";
+			msg ="审核成功";
+		}else{
+			msg ="取消审核成功";
+		}
+		commonDao.executeSql("update Goods set GoodsAuditFlag= ? "+str+" where GoodsID='"+GoodsID+"'", GoodsAuditFlag);
+		return msg;
 	}
     
   

@@ -299,6 +299,48 @@ public class GoodsInfoController extends BaseController {
         }
         return j;
     }
+    /*
+     * 删除货品
+     * */
+    @RequestMapping(params = "deleteGoodsInfo")
+    @ResponseBody
+  public AjaxJson  deleteGoodsInfo(HttpServletRequest req){
+    	  Client client = ResourceUtil.getClientFromSession(req);
+          AjaxJson j = new AjaxJson();
+          j.setAttributes(new HashMap<String, Object>());
+          try{
+        	  String goodsId = processingStringData(oConvertUtils.getString(req.getParameter("GoodsID")));
+        	  String msg= goodsInfoService.delgoods(goodsId);
+        	  j.setSuccess(true);
+        	  j.setMsg(msg);
+          }catch(Exception e){
+        	  j.setSuccess(false);
+        	  j.setMsg(e.getMessage());
+        	  SysLogger.error(e.getMessage(), e);
+          }
+          return j;
+    	
+    }
+    @RequestMapping(params = "audit")
+    @ResponseBody
+  public AjaxJson  audit(HttpServletRequest req){
+ 	  Client client = ResourceUtil.getClientFromSession(req);
+      AjaxJson j = new AjaxJson();
+      j.setAttributes(new HashMap<String, Object>());
+      try{
+    	  String goodsId = processingStringData(oConvertUtils.getString(req.getParameter("GoodsID")));
+    	  int GoodsAuditFlag =Integer.parseInt(processingStringData(oConvertUtils.getString(req.getParameter("AuditFlag"))));
+    	  String msg= goodsInfoService.audit(goodsId, GoodsAuditFlag, client);
+    	  j.setSuccess(true);
+    	  j.setMsg(msg);
+      }catch(Exception e){
+    	  j.setSuccess(false);
+    	  j.setMsg(e.getMessage());
+    	  SysLogger.error(e.getMessage(), e);
+      }
+      return j;
+	  
+  }
 
     /**
      * 格式化空字符串方法

@@ -28,5 +28,13 @@ public interface GoodsInfoService {
     public List<Map<String,Object>> goodslist(String Code,int currpage,int pagesize);
     //详情页
     public Map<String, Object> goodsColor(String GoodsID,String SupplierID,String Type,String DiscountRate);
+    
+    //删除货品
+    public String delgoods(String goodsid);
+    
+    //审核与反审核
+    public String audit(String GoodsID,int GoodsAuditFlag,Client client);
+    	
+    
     	
 }
