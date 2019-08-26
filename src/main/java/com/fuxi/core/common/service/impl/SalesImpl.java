@@ -446,17 +446,17 @@ public class SalesImpl implements SalesService {
     	               }
     	               System.out.println("尺码组的:"+DisplaySizeGroup);
     	            
-    	               QuantitySum =QuantitySum+Integer.parseInt(String.valueOf(map.get("Quantity"))); //总数数量
+    	               QuantitySum =QuantitySum+Integer.parseInt(String.valueOf(map.get("Quantity")))*direction; //总数数量
     	               
     	               System.out.println("Amount:"+String.valueOf((map.get("Amount"))));
     	               System.out.println("Discount:"+String.valueOf((map.get("Discount"))));
     	               
     	               if(map.get("Amount") !=null && !"".equals(String.valueOf((map.get("Amount")))) && !"null".equals(String.valueOf(map.get("Amount"))) ){
-    	            	   AmountSum.add(new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
+    	            	   AmountSum.add(new BigDecimal(String.valueOf(map.get("Amount"))).multiply(new BigDecimal(direction))).setScale(2,BigDecimal.ROUND_DOWN);
     	               }
     	               
     	               if(map.get("Discount") !=null && !"".equals(String.valueOf(map.get("Discount"))) && !"null".equals(String.valueOf(map.get("Discount")))){
-    	            	   Discount.add(new BigDecimal(String.valueOf(map.get("Discount")))).setScale(2, BigDecimal.ROUND_DOWN);
+    	            	   Discount.add(new BigDecimal(String.valueOf(map.get("Discount"))).multiply(new BigDecimal(direction))).setScale(2, BigDecimal.ROUND_DOWN);
     	               }
     	               
     	               //AmountSum.add((map.get("Amount")==null || "".equals(map.get("Discount")))?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
@@ -477,7 +477,7 @@ public class SalesImpl implements SalesService {
     	            		if(sizemap.get("Quantity") !=null &&  !"null".equals(String.valueOf(sizemap.get("Quantity"))) 
     	            		 && !"0".equals(String.valueOf(sizemap.get("Quantity"))) && !"".equals(String.valueOf(sizemap.get("Quantity")))){
     	            			Field=Field+String.valueOf(sizemap.get("x"))+",";
-    	            			FieldValue=FieldValue+String.valueOf(sizemap.get("Quantity"))+",";
+    	            			FieldValue=FieldValue+String.valueOf(Integer.parseInt(String.valueOf(sizemap.get("Quantity")))*direction)+",";
     	            			
     	            			System.out.println("字段名："+String.valueOf(sizemap.get("x")));
     	            		}
@@ -502,12 +502,12 @@ public class SalesImpl implements SalesService {
     	            	String dDiscount =null;
     	                if(!"".equals(map.get("Discount")) && map.get("Discount") !=null)
     	                {
-    	                	dDiscount=String.valueOf(map.get("Discount"));
+    	                	dDiscount=String.valueOf(Integer.parseInt((String)map.get("Discount"))*direction);
     	                }
     	                String Amount=null;
     	                if(!"".equals(map.get("Amount")) && map.get("Amount") !=null)
     	                {
-    	                	Amount=String.valueOf(map.get("Amount"));
+    	                	Amount=String.valueOf(new BigDecimal(String.valueOf(map.get("Amount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
     	                }
     	            	String RetailSales=null;
     	            	
@@ -519,7 +519,8 @@ public class SalesImpl implements SalesService {
     	            	String RetailAmount =null;
     	            	 if(!"".equals(map.get("RetailAmount")) && map.get("RetailAmount") !=null)
         	                {
-    	            		 RetailAmount=String.valueOf(map.get("RetailAmount"));
+    	            		 RetailAmount=String.valueOf(new BigDecimal(String.valueOf(map.get("RetailAmount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
+    	            				 
         	                }
     	            	 
     	            	 
