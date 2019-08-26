@@ -687,7 +687,7 @@ public class CommonController extends BaseController {
             System.out.println("loadpath=" + loadpath);
             DiskFileUpload fu = new DiskFileUpload();
             fu.setSizeMax(1024 * 1024 * 1024); // 设置允许用户上传文件大小,单位:字节
-            fu.setSizeThreshold(40960000); // 设置最多只允许在内存中存储的数据,单位:字节40960
+            fu.setSizeThreshold(40960000); // 设置最多只允许在内存中存储的数据,单位:字节40960  40960000
             // fu.setRepositoryPath(temp); //
             // 设置一旦文件大小超过getSizeThreshold()的值时数据存放在硬盘的目录
             // 开始读取上传信息
@@ -730,13 +730,16 @@ public class CommonController extends BaseController {
                 }
             }
             //j.setObj(fileItems);
-            String path1 = request.getContextPath();
-            String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path1+"/";
+            //server.xml 配置路径<Context path="/images" docBase="D:\FXPDA_Server\WebRoot\images" reloadable="true" />
             
-            url=basePath+url;
+            String path1 = request.getContextPath();//项目的名称 
+            String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+"/";
             
+            url=basePath+"images/"+url;
+            System.out.println("返回路径："+url);
             j.setObj(url);
             j.setMsg("上传成功");
+            j.setSuccess(true);
             } catch (Exception e) {
             j.setSuccess(false);
             j.setMsg(e.getMessage());
