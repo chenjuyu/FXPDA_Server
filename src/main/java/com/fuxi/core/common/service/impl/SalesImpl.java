@@ -402,7 +402,7 @@ public class SalesImpl implements SalesService {
          }
          int direction = Integer.parseInt(directionStr);
          String No = null;
-         
+         String DiscountPrice=null;
          System.out.println("iml的ID"+SalesID);
     	     if("".equals(SalesID) || SalesID ==null){//主表的 判断为新增单据
     	    	 
@@ -461,6 +461,7 @@ public class SalesImpl implements SalesService {
     	               
     	               //AmountSum.add((map.get("Amount")==null || "".equals(map.get("Discount")))?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
     	               //Discount.add((map.get("Discount")==null || "".equals(map.get("Discount"))) ?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Discount")))).setScale(2,BigDecimal.ROUND_DOWN);
+    	            
     	               
     	               
     	               
@@ -493,11 +494,17 @@ public class SalesImpl implements SalesService {
     	            		UnitPrice =String.valueOf(map.get("UnitPrice"));
     	            	}
     	            	
-    	            	String  DiscountRate =null;
+    	            	String  DiscountRate =null;//DiscountPrice 后台算吧，因为前台 已经算好金额了
     	            	  if(!"".equals(map.get("DiscountRate")) && map.get("DiscountRate") !=null)
       	                {
-    	            		  DiscountRate=String.valueOf(map.get("DiscountRate"));
+    	            		  DiscountRate =String.valueOf(map.get("DiscountRate"));
+    	            		  if(UnitPrice !=null){
+    	            		  DiscountPrice =String.valueOf(new BigDecimal(UnitPrice).multiply(new BigDecimal(DiscountRate)).divide(new BigDecimal(10.0)).setScale(2,BigDecimal.ROUND_DOWN)) ;//自动算
+    	            		  }
       	                }
+    	            	
+    	            	  
+    	            	  
     	            	
     	            	String dDiscount =null;
     	                if(!"".equals(map.get("Discount")) && map.get("Discount") !=null)
@@ -525,9 +532,9 @@ public class SalesImpl implements SalesService {
     	            	 
     	            	 
     	            	//RetailSales RetailAmount 前台算好
-    	                sql="Insert into SalesDetailTemp(IndexNo,SalesID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
+    	                sql="Insert into SalesDetailTemp(IndexNo,SalesID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,DiscountPrice,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
     	            		   "select "+IndexNo+",'"+SalesID+"','"+String.valueOf(map.get("GoodsID"))+"','"+String.valueOf(map.get("ColorID"))+"',"
-    	            		      +FieldValue+""+String.valueOf(map.get("Quantity"))+","+UnitPrice+","+DiscountRate+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount; 	
+    	            		      +FieldValue+""+String.valueOf(Integer.parseInt((String)map.get("Quantity"))*direction)+","+UnitPrice+","+DiscountRate+","+DiscountPrice+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount; 	
     	               commonDao.executeSql(sql); //一条条写入	
     	               
     	            }
@@ -616,8 +623,8 @@ public class SalesImpl implements SalesService {
      	            		    	FieldValue =FieldValue+"null,";
      	            		    	 UpdateStr=UpdateStr+String.valueOf(sizemap.get("x"))+"=null,";
      	            		    }else{
-     	            		    FieldValue =FieldValue+String.valueOf(sizemap.get("Quantity"))+",";
-     	            		   UpdateStr=UpdateStr+String.valueOf(sizemap.get("x"))+"="+String.valueOf(sizemap.get("Quantity"))+",";
+     	            		    FieldValue =FieldValue+String.valueOf(Integer.parseInt(String.valueOf(sizemap.get("Quantity")))*direction)+",";
+     	            		   UpdateStr=UpdateStr+String.valueOf(sizemap.get("x"))+"="+String.valueOf(Integer.parseInt(String.valueOf(sizemap.get("Quantity")))*direction)+",";
      	            		    }
      	            		   
      	            		}	
@@ -635,17 +642,20 @@ public class SalesImpl implements SalesService {
 	            	  if(!"".equals(map2.get("DiscountRate")) && map2.get("DiscountRate") !=null)
   	                {
 	            		  DiscountRate=String.valueOf(map2.get("DiscountRate"));
+	            		  if(UnitPrice !=null){
+    	            		  DiscountPrice =String.valueOf(new BigDecimal(UnitPrice).multiply(new BigDecimal(DiscountRate)).divide(new BigDecimal(10.0)).setScale(2,BigDecimal.ROUND_DOWN)) ;//自动算
+    	            	 }
   	                }
 	            	
 	            	String dDiscount =null;
 	                if(!"".equals(map2.get("Discount")) && map2.get("Discount") !=null)
 	                {
-	                	dDiscount=String.valueOf(map2.get("Discount"));
+	                	dDiscount=String.valueOf(new BigDecimal(String.valueOf(map2.get("Discount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
 	                }
 	                String Amount=null;
 	                if(!"".equals(map2.get("Amount")) && map2.get("Amount") !=null)
 	                {
-	                	Amount=String.valueOf(map2.get("Amount"));
+	                	Amount=String.valueOf(new BigDecimal(String.valueOf(map2.get("Amount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
 	                }
 	            	String RetailSales=null;
 	            	
@@ -657,7 +667,7 @@ public class SalesImpl implements SalesService {
 	            	String RetailAmount =null;
 	            	 if(!"".equals(map2.get("RetailAmount")) && map2.get("RetailAmount") !=null)
     	                {
-	            		 RetailAmount=String.valueOf(map2.get("RetailAmount"));
+	            		 RetailAmount=String.valueOf(new BigDecimal(String.valueOf(map2.get("RetailAmount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
     	                }
      	            	
      	            	
@@ -665,7 +675,7 @@ public class SalesImpl implements SalesService {
     	    	   if(count>=1){ //更新存在的一行
    	            	if(!"".equals(FieldValue) && FieldValue !=null){
    	            		//FieldValue =FieldValue.substring(0, FieldValue.length()-1);
-   	            		 sql="Update salesdetailtemp set "+UpdateStr+"Quantity="+String.valueOf(map2.get("Quantity"))+",UnitPrice="+UnitPrice+",Discount="+dDiscount+",DiscountRate="+DiscountRate+",Amount="+Amount+" where goodsId='"+goodsId+"' and colorid='"+colorId+"' and salesid = '" + SalesID + "' and SalesDetailID= '"+DetailID+"'";	
+   	            		 sql="Update salesdetailtemp set "+UpdateStr+"Quantity="+String.valueOf(Integer.parseInt(String.valueOf(map2.get("Quantity")))*direction)+",UnitPrice="+UnitPrice+",Discount="+dDiscount+",DiscountRate="+DiscountRate+",Amount="+Amount+" where goodsId='"+goodsId+"' and colorid='"+colorId+"' and salesid = '" + SalesID + "' and SalesDetailID= '"+DetailID+"'";	
    	            		System.out.println("sql语句："+sql);
    	            		 commonDao.executeSql(sql);
    	            	}   
@@ -673,9 +683,9 @@ public class SalesImpl implements SalesService {
     	    		   
     	    
     	    		   
-    	    		   sql="Insert into SalesDetailTemp(IndexNo,SalesID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
+    	    		   sql="Insert into SalesDetailTemp(IndexNo,SalesID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,DiscountPrice,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
     	            		   "select "+index+",'"+SalesID+"','"+String.valueOf(map2.get("GoodsID"))+"','"+String.valueOf(map2.get("ColorID"))+"',"
-    	            		      +FieldValue+"'"+String.valueOf(map2.get("Quantity"))+"',"+UnitPrice+","+DiscountRate+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount+""; 	
+    	            		      +FieldValue+"'"+String.valueOf(Integer.parseInt(String.valueOf(map2.get("Quantity")))*direction)+"',"+UnitPrice+","+DiscountRate+","+DiscountPrice+","+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount+""; 	
     	               commonDao.executeSql(sql);
     	    		      
     	    	   } 	

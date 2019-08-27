@@ -483,5 +483,10 @@ public class PurchaseController extends BaseController {
         }
         return j;
     }
+    
+    
+    //新的保存方法
+    
+    
 
 }
