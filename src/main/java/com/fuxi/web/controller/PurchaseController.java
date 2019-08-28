@@ -4,13 +4,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.servlet.http.HttpServletRequest;
+
 import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+
 import com.fuxi.core.common.dao.impl.CommonDao;
 import com.fuxi.core.common.exception.BusinessException;
 import com.fuxi.core.common.model.json.AjaxJson;
@@ -483,10 +488,151 @@ public class PurchaseController extends BaseController {
         }
         return j;
     }
-    
-    
-    //新的保存方法
-    
+    @RequestMapping(params = "savePurchaseX")
+    @ResponseBody
+    public AjaxJson savePurchaseX(HttpServletRequest req){
+    	 Client client = ResourceUtil.getClientFromSession(req);
+         AjaxJson j = new AjaxJson();
+         j.setAttributes(new HashMap<String, Object>());
+         try{
+        String PurchaseId=null;	 
+        String PurchaseID = oConvertUtils.getString(req.getParameter("PurchaseID"));
+        String supplierid = oConvertUtils.getString(req.getParameter("supplierid"));
+        String departmentid = oConvertUtils.getString(req.getParameter("departmentid"));
+        String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
+        String brandId = oConvertUtils.getString(req.getParameter("brandId"));
+        String businessDeptId = oConvertUtils.getString(req.getParameter("businessDeptId"));
+        String memo = oConvertUtils.getString(req.getParameter("memo"));
+        String type = oConvertUtils.getString(req.getParameter("type"));
+        String direction = oConvertUtils.getString(req.getParameter("direction"));
+        String typeEName = oConvertUtils.getString(req.getParameter("typeEName"));
+        String jsonStr = oConvertUtils.getString(req.getParameter("data"));
+       
+        JSONArray datas = JSONArray.fromObject(jsonStr);
+        List<List<Map<String, Object>>> sizeDatalist =new ArrayList<>(); //sizeData 所有元素的所有货品的，不是单个的，
+        
+        for(int i=0;i<datas.size(); i++){
+            System.out.println("datas 没有删除键前 i串："+datas.get(i));
+            JSONObject json =datas.getJSONObject(i); //单个对象
+            JSONArray sizeData =json.getJSONArray("sizeData");
+            
+            List<Map<String, Object>> ls=JSONArray.toList(sizeData, Map.class);
+            sizeDatalist.add(ls);
+            json.remove("sizetitle");
+            json.remove("right");
+            json.remove("sizeData");
+            System.out.println("json第一项："+datas.get(i));
+          System.out.println("datas 删除键后 i串："+datas.get(i));
+          //dataList.add(datas.get(i));	
+          }  
+        List<Map<String, Object>> dataList = JSONArray.toList(datas, Map.class); //上面删除后，才能转  收货部门，默认取用户登录的所属部门
+        
+        for(int k=0;k<dataList.size();k++){                       //因不能一次转 所以要重新整理后台数据 
+        	Map<String, Object> map=dataList.get(k);
+        	 for(int m=0;m<sizeDatalist.size();m++){ //不知道 顺序是否对，不对再判断 
+        		if(String.valueOf(map.get("GoodsID")).equals(String.valueOf(sizeDatalist.get(m).get(0).get("GoodsID"))) && String.valueOf(map.get("ColorID")).equals(String.valueOf(sizeDatalist.get(m).get(0).get("ColorID")))){   //拿一个出来就可以
+        		 map.put("sizeData",sizeDatalist.get(m));
+        		}
+        	 } 	
+        }
+        
+        
+        List<Map<String, Object>> tmpList = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> tempList = new ArrayList<Map<String, Object>>();
+        
+        List<Map<String, Object>> tdatas = new ArrayList<Map<String, Object>>();
+        List<String> supplierIds = new ArrayList<String>();
+        
+        
+        tdatas.addAll(dataList);
+        if("".equals(supplierid) || supplierid==null){//如果为空，从货品明细取的，不是表头
+        	
+        	
+     
+        	
+            // 去除重复的厂商信息
+            for (int i = 0; i < tdatas.size() - 1; i++) {
+                Map temp1 = (Map) tdatas.get(i);
+                for (int a = tdatas.size() - 1; a > i; a--) {
+                    Map temp2 = (Map) tdatas.get(a);
+                    if (temp1.get("SupplierID").equals(temp2.get("SupplierID"))) {
+                        tdatas.remove(a);
+                    }
+                }
+            }
+            // 得到不同的厂商
+            for (int i = 0; i < tdatas.size(); i++) {
+                Map<String, Object> map = tdatas.get(i);
+                supplierIds.add(String.valueOf(map.get("SupplierID")));
+            }
+            
+            // 根据不同的厂商生成单据
+            for (int i = 0; i < supplierIds.size(); i++) {
+                for (int k = 0; k < dataList.size(); k++) {
+                    Map<String, Object> map = dataList.get(k);
+                    String supplierId = String.valueOf(map.get("SupplierID"));
+                    if (supplierId.equals(supplierIds.get(i))) {
+                    
+                        tempList.add(map);
+                    }
+                }
+                
+                // 采购退货单检查负库存
+                if (Integer.parseInt(direction) == -1) {
+                    boolean mustExistsGoodsFlag = Boolean.parseBoolean(String.valueOf(commonDao.getData(" select MustExistsGoodsFlag from Department where DepartmentID = ? ", departmentid)));
+                    if (mustExistsGoodsFlag && !client.isSuperSalesFlag()) {
+                        if (PurchaseID == null || "".equals(PurchaseID) || "null".equalsIgnoreCase(PurchaseID)) {
+                            tmpList = commonController.checkNegativeInventoryForBackStage(commonDao, dataList, client.getOnLineId(), client.getUserID(), departmentid, 95, PurchaseID, 0, 2, 0, 0, 0, "");
+                        } else {
+                            tmpList = commonController.checkNegativeInventoryForBackStage(commonDao, dataList, client.getOnLineId(), client.getUserID(), departmentid, 95, PurchaseID, 0, 2, 1, 0, 0, "");
+                        }
+                    }
+                }
+                if (tmpList.size() == 0) { //新的保存方法
+                    // 保存单据
+                	if(departmentid ==null || "".equals(departmentid)){
+                		//为了相同厂商只生成一张单，所以部门只能取一个   前端部门不能为空，必须有
+                		departmentid = (String)tempList.get(0).get("DepartmentID");
+                	}
+                    PurchaseId = purchaseService.savePurchaseX(direction, tempList, PurchaseID, supplierIds.get(i), departmentid, employeeId, businessDeptId, memo, type, typeEName, brandId, client);
+                    tempList.clear();
+                }
+                
+            }
+        	
+        	
+        }else {  
+            // 采购退货单检查负库存 修改单据
+            if (Integer.parseInt(direction) == -1) {
+                boolean mustExistsGoodsFlag = Boolean.parseBoolean(String.valueOf(commonDao.getData(" select MustExistsGoodsFlag from Department where DepartmentID = ? ", departmentid)));
+                if (mustExistsGoodsFlag && !client.isSuperSalesFlag()) {
+                    if (PurchaseID == null || "".equals(PurchaseID) || "null".equalsIgnoreCase(PurchaseID)) {
+                        tmpList = commonController.checkNegativeInventoryForBackStage(commonDao, dataList, client.getOnLineId(), client.getUserID(), departmentid, 95, PurchaseID, 0, 2, 0, 0, 0, "");
+                    } else {
+                        tmpList = commonController.checkNegativeInventoryForBackStage(commonDao, dataList, client.getOnLineId(), client.getUserID(), departmentid, 95, PurchaseID, 0, 2, 1, 0, 0, "");
+                    }
+                }
+            }
+            if (tmpList.size() == 0) {
+                // 保存单据
+                PurchaseId = purchaseService.savePurchaseX(direction, dataList, PurchaseID, supplierid, departmentid, employeeId, businessDeptId, memo, type, typeEName, brandId, client);
+            }
+        }
+        j.getAttributes().put("PurchaseID", PurchaseId);
+        j.getAttributes().put("tempList", tmpList);
+        j.setSuccess(true);
+        j.setMsg("保存成功");
+        
+         }catch(Exception e){
+        	 
+        	 j.setSuccess(false);
+        	 j.setMsg(e.getMessage());
+        	 SysLogger.error(e.getMessage(), e);
+        	 
+         }
+         
+         return j;
+    }
     
 
 }

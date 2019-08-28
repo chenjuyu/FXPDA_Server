@@ -27,7 +27,7 @@ public interface GoodsInfoService {
     //用于生成采购收货单 ，货品资料新增，修改 单个货品的 读取 货品颜色 没有必要分页查询 了
     public List<Map<String,Object>> goodslist(String Code,int currpage,int pagesize);
     //详情页
-    public Map<String, Object> goodsColor(String GoodsID,String SupplierID,String Type,String DiscountRate);
+    public Map<String, Object> goodsColor(String GoodsID,String SupplierID,String Type,String DiscountRate,Client client);
     
     //删除货品
     public String delgoods(String goodsid);

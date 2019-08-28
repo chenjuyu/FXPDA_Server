@@ -394,9 +394,9 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
 		return ls;
 	}
 
-	@Override //队了包含颜色 尺码，还要显示 货品信息
+	@Override //队了包含颜色 尺码，还要显示 货品信息  再添加一个 登录用户的所嘱部门 ，生成单据时，要收货部门，或者退货部门
 	public Map<String, Object> goodsColor(String GoodsID,
-			String SupplierID, String Type, String DiscountRate) {
+			String SupplierID, String Type, String DiscountRate,Client client) {
 		 
 		List<Map<String, Object>> datalist=new ArrayList<>();//用于返回
 		
@@ -494,6 +494,12 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
 			}
 		 
 		Map<String,Object> datamap=new LinkedHashMap<>();
+		
+		
+		goods.get(0).put("DepartmentID", client.getDeptID());
+		goods.get(0).put("Department", client.getDeptName());
+		
+		
 		datamap.put("goods", goods.get(0));//货品列表但只有一个
 		//添加一个增加按扭
 		Map<String,Object> addbtn=new LinkedHashMap<>();

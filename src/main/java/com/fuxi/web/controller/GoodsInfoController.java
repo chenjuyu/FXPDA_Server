@@ -69,11 +69,12 @@ public class GoodsInfoController extends BaseController {
     @RequestMapping(params = "goodsDetail")
     @ResponseBody
     public AjaxJson goodsDetail(HttpServletRequest req){
+    	Client client = ResourceUtil.getClientFromSession(req);
     	AjaxJson j=new AjaxJson();
     	try{
     		String GoodsID =oConvertUtils.getString(req.getParameter("GoodsID"));
     		//String SupplierID=oConvertUtils.getString(req.getParameter("SupplierID"));
-    		Map<String, Object> map=goodsInfoService.goodsColor(GoodsID, null, "采购", null);
+    		Map<String, Object> map=goodsInfoService.goodsColor(GoodsID, null, "采购", null,client);
     		j.setAttributes(map);
     		j.setSuccess(true);
     	}catch(Exception e){

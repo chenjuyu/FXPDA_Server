@@ -767,7 +767,7 @@ public class PurchaseImpl implements PurchaseService {
             	String dDiscount =null;
                 if(!"".equals(map.get("Discount")) && map.get("Discount") !=null)
                 {
-                	dDiscount=String.valueOf(Integer.parseInt((String)map.get("Discount"))*direction);
+                	dDiscount=String.valueOf(new BigDecimal(String.valueOf(map.get("Discount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
                 }
                 String Amount=null;
                 if(!"".equals(map.get("Amount")) && map.get("Amount") !=null)
@@ -792,8 +792,9 @@ public class PurchaseImpl implements PurchaseService {
             	//RetailSales RetailAmount 前台算好
                 sql="Insert into purchaseDetailTemp(IndexNo,PurchaseID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,DiscountPrice,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
             		   "select "+IndexNo+",'"+PurchaseID+"','"+String.valueOf(map.get("GoodsID"))+"','"+String.valueOf(map.get("ColorID"))+"',"
-            		      +FieldValue+""+String.valueOf(Integer.parseInt((String)map.get("Quantity"))*direction)+","+UnitPrice+","+DiscountRate+","+DiscountPrice+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount; 	
-               commonDao.executeSql(sql); //一条条写入	
+            		      +FieldValue+""+String.valueOf(Integer.parseInt(String.valueOf(map.get("Quantity")))*direction)+","+UnitPrice+","+DiscountRate+","+DiscountPrice+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount; 	
+               System.out.println("sql语句："+sql);
+                commonDao.executeSql(sql); //一条条写入	
                
             }
             if(!"".equals(DisplaySizeGroup)){
