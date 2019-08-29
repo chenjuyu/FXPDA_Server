@@ -1,7 +1,9 @@
 package com.fuxi.web.controller;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,6 +112,117 @@ public class PurchaseController extends BaseController {
         }
         return j;
     }
+    
+    
+    /*
+     * 采购收货单主表信息，新写 ，退货也应该在这里处理了 这个退货的为变成正数
+     * */
+    @RequestMapping(params = "purchaselist")
+    @ResponseBody  
+    public AjaxJson purchaselist(HttpServletRequest req){
+    	 Client client = ResourceUtil.getClientFromSession(req);
+         AjaxJson j = new AjaxJson();
+         j.setAttributes(new HashMap<String, Object>());
+         Map<String, String> map = client.getMap();
+         String userRight = map.get(client.getUserID());
+         try{
+        	  int page = oConvertUtils.getInt(req.getParameter("currPage"));
+              String audit = oConvertUtils.getString(req.getParameter("audit"));
+              String no = oConvertUtils.getString(req.getParameter("no"));
+              String beginDate = oConvertUtils.getString(req.getParameter("beginDate"));
+              String endDate = oConvertUtils.getString(req.getParameter("endDate"));
+              String departmentId = oConvertUtils.getString(req.getParameter("departmentId"));
+              String supplierId = oConvertUtils.getString(req.getParameter("supplierId"));
+              String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
+              
+              int direction =Integer.parseInt(oConvertUtils.getString(req.getParameter("direction")));//代表收，退
+              
+              StringBuffer sb = new StringBuffer();
+              sb.append(" select so.PurchaseID,so.SupplierID,so.DepartmentID, de.Department ,so.Type, No, CONVERT(varchar(100), Date, 111) Date,isnull(QuantitySum*so.direction,0) QuantitySum,").append("(AmountSum*so.direction) AmountSum,AuditFlag,so.MadeBy,so.madebydate,isnull((select Supplier from Supplier s where so.SupplierId = s.SupplierId),'') Supplier,")
+                      .append("(select Name from Employee where employeeId = so.EmployeeId) Employee,isnull(so.Memo,'') Memo,").append("(select Brand from Brand where BrandId = so.BrandId) Brand from Purchase so  ")
+                      .append(" left join Department de on de.DepartmentID = so.DepartmentID where so.DepartmentID in (").append(userRight).append(") and direction ="+direction+"  ");
+              // 按条件查询
+              if (null != audit && "0".equals(audit)) {
+                  // 未审核
+                  sb.append(" and AuditFlag = '0' ");
+              } else if (null != audit && "1".equals(audit)) {
+                  // 已审核
+                  sb.append(" and AuditFlag = '1' ");
+              }
+              // 查询单号时
+              if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
+                  sb.append(" and No = '" + no + "' ");
+              }
+              // 时间区间
+              if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
+                  sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+              }
+              // 部门
+              if (departmentId != null && !"".equals(departmentId.trim()) && !"null".equalsIgnoreCase(departmentId)) {
+                  sb.append(" and so.departmentId = '" + departmentId + "' ");
+              }
+              // 客户
+              if (supplierId != null && !"".equals(supplierId.trim()) && !"null".equalsIgnoreCase(supplierId)) {
+                  sb.append(" and so.supplierId = '" + supplierId + "' ");
+              }
+              // 经手人
+              if (employeeId != null && !"".equals(employeeId.trim()) && !"null".equalsIgnoreCase(employeeId)) {
+                  sb.append(" and so.employeeId = '" + employeeId + "' ");
+              }
+              sb.append(" order by so.madebydate desc,No desc ");
+             
+              List<Map<String,Object>> list = commonDao.findForJdbc(sb.toString(), page, 15);
+              
+              for(int i=0;i<list.size();i++){
+            	  Map<String,Object> m=list.get(i);
+            	  if(!"".equals(String.valueOf(m.get("AmountSum"))) && m.get("AmountSum") !=null){
+            		  m.put("AmountSum", new BigDecimal(String.valueOf(m.get("AmountSum"))).setScale(2,BigDecimal.ROUND_DOWN)); 
+            	  }else{
+            		  m.put("AmountSum", ""); 
+            	  }
+            	  List<Map<String,Object>> right=new ArrayList<>();
+            	  
+            	  for(int n=0;n<3;n++){
+            	  Map<String,Object> rmap=new LinkedHashMap<>();
+            	  Map<String,Object> stylemap=new LinkedHashMap<>();
+            	  if(n==0){
+                	  rmap.put("text", "删除");
+                	  stylemap.put("backgroundColor", "orange");
+                	  stylemap.put("color", "white");
+                	  rmap.put("style", stylemap);
+                 }else if(n==1){
+            	  rmap.put("text", "审核");
+            	  stylemap.put("backgroundColor", "mediumspringgreen");
+            	  stylemap.put("color", "white");
+            	  rmap.put("style", stylemap);
+            	  
+            	  }else if(n==2){
+            	  rmap.put("text", "反审");
+            	  stylemap.put("backgroundColor", "#F4333C");
+            	  stylemap.put("color", "white");
+            	  rmap.put("style", stylemap);
+            	  }
+            	  right.add(rmap);
+              }
+            	  m.put("right", right);
+              }
+              
+             System.out.print("list:"+list.toString());
+              
+              j.setObj(list);
+        	 
+         }catch(Exception e){
+        	  j.setSuccess(false);
+              j.setMsg(e.getMessage());
+              SysLogger.error(e.getMessage(), e);	 
+         }
+    	return j;
+    }
+    
+    
+    
+    
+    
 
     /**
      * 根据条件获取采购退货单(主表信息)
@@ -634,5 +747,209 @@ public class PurchaseController extends BaseController {
          return j;
     }
     
+    
+    
+    /*
+  * 根据 purchaseid 显示 单据详情，显示横向尺码
+  * 
+  * */
+ @RequestMapping(params = "purchaseEditX")
+ @ResponseBody
+ 
+ public AjaxJson salesEditX(HttpServletRequest req){
+     AjaxJson j =new AjaxJson();
+     j.setAttributes(new HashMap<String, Object>());
+     Client client = ResourceUtil.getClientFromSession(req);
+     List<Map<String, Object>> list =new ArrayList<>();
+ 	try{
+ 		String PurchaseID = oConvertUtils.getString(req.getParameter("PurchaseID"));
+ 		int direction=Integer.parseInt(oConvertUtils.getString(req.getParameter("direction"))); //退货时，要按-1让显示 变成正数
+ 		StringBuffer sb = new StringBuffer();
+ 	  sb.append("Select a.*,b.Code,b.SupplierCode, b.Name,b.Model,b.Unit,c.Color,b.GroupID,b.GroupNo,d.No as SalesOrderNo,"+
+ 		"b.StopFlag,b.age,b.Season,br.brand,b.RetailSales1,b.RetailSales2,b.PurchasePrice,bs.Serial,st.Storage "+
+ 		"from PurchaseDetailTemp a join Goods b on a.GoodsID = b.GoodsID "+
+ 		"left join PurchaseOrder d on a.PurchaseOrderID = d.PurchaseOrderID "+
+ 		"join Color c on a.ColorID=c.ColorID left join brand br on b.brandid = br.brandid "+
+ 		"left join BrandSerial bs on b.BrandSerialID = bs.BrandSerialID "+
+ 		"left join storage st on a.StorageID = st.StorageID "+
+ 		"where a.PurchaseID= '"+PurchaseID+"'" + 
+ 		"order by a.PurchaseID, a.IndexNo, b.Code,c.No");	
+ 	 //子表的所有数据
+		List<Map<String, Object>> datalist= commonDao.findForJdbc(sb.toString());
+ 	  if(datalist.size() >0){
+ 		 for(int i=0 ;i<datalist.size();i++){ //提取数据
+ 			Map<String,Object> datamap=new LinkedHashMap<>(); 
+ 			Map<String,Object> map = datalist.get(i); //每一条
+ 			String sql="select * from SizeGroupSize where SizeGroupID='"+String.valueOf(map.get("GroupID"))+"'";
+ 			List<Map<String, Object>> sizelist=commonDao.findForJdbc(sql); //查询
+ 			List<Map<String, Object>> sizetitle =new ArrayList<>();
+ 			List<Map<String, Object>> sizeData =new ArrayList<>();
+ 			 for(int k=0;k<sizelist.size() ;k++){ //sizetitle 查询所嘱的尺码
+ 				 Map<String,Object> smap=sizelist.get(k);
+ 				 Map<String,Object> newmap=new LinkedHashMap<>();
+ 				 newmap.put("field", "x_"+String.valueOf(smap.get("No")));
+ 				 newmap.put("title", String.valueOf(smap.get("Size")));
+ 				 sizetitle.add(newmap);
+ 				 //--------------数据-------------------
+ 				 Map<String,Object> sdata=new LinkedHashMap<>();
+ 				 sdata.put("PurchaseDetailID", String.valueOf(map.get("PurchaseDetailID")));
+ 				 sdata.put("PurchaseID", String.valueOf(map.get("PurchaseID")));
+ 				 sdata.put("GoodsID",String.valueOf(map.get("GoodsID")));
+ 				 sdata.put("ColorID",String.valueOf(map.get("ColorID")));
+ 				 sdata.put("x","x_"+String.valueOf(smap.get("No")));
+ 				 sdata.put("Size",String.valueOf(smap.get("Size")));
+ 				 sdata.put("Color",String.valueOf(map.get("Color")));
+ 				 sdata.put("SizeID",String.valueOf(smap.get("SizeID")));
+ 				 System.out.println("尺码显示列："+"x_"+String.valueOf(smap.get("No")));
+ 				 //有箱数的情况
+ 				 if(!"0".equals(String.valueOf(map.get("BoxQty"))) && map.get("BoxQty") !=null){
+ 					 if(String.valueOf(map.get("x_"+String.valueOf(smap.get("No")))) !=null && map.get("x_"+String.valueOf(smap.get("No"))) !=null){
+ 						 
+ 					// BigDecimal Quantity = new BigDecimal(Double.valueOf(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))))
+ 					//.multiply(new BigDecimal(String.valueOf(map.get("BoxQty")))).setScale(2,BigDecimal.ROUND_DOWN);
+ 					if(!"0".equals(String.valueOf(map.get("BoxQty"))) && map.get("BoxQty") !=null){
+ 						sdata.put("BoxQty",String.valueOf(map.get("BoxQty")));
+ 					 } 
+ 				    if(map.get("x_"+String.valueOf(smap.get("No"))) !=null && !"null".equalsIgnoreCase(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))) && !"".equals(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))))	 
+ 					  {	 
+ 					  sdata.put("Quantity",Integer.parseInt(String.valueOf(map.get("x_"+String.valueOf(smap.get("No")))))*direction);
+ 					  }    					
+ 					 }else{
+ 					 sdata.put("Quantity",""); 
+ 					 }
+ 					 
+ 				 }else{
+ 					 if(!"0".equals(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))) && map.get("x_"+String.valueOf(smap.get("No"))) !=null && !"".equals(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))))
+ 				     {
+ 						 sdata.put("Quantity",Integer.parseInt(String.valueOf(map.get("x_"+String.valueOf(smap.get("No")))))*direction);
+ 				     }else {
+ 				    	 sdata.put("Quantity",""); 
+ 				     }
+ 				 }
+ 				 System.out.println("get尺码数量："+String.valueOf(sdata.get("Quantity")));
+ 				 
+ 				 if(!"".equals(String.valueOf(map.get("UnitPrice"))) && map.get("UnitPrice") !=null)//单价
+ 				 {
+ 					 sdata.put("UnitPrice", new BigDecimal(Double.valueOf(String.valueOf(map.get("UnitPrice")))).setScale(2,BigDecimal.ROUND_DOWN));
+ 				 }else{
+ 					 sdata.put("UnitPrice","");
+ 				 }
+ 				 
+ 				  String DiscountRate="10";
+ 				 if(!"".equals(String.valueOf(map.get("UnitPrice"))) && map.get("UnitPrice") !=null && sdata.get("Quantity") !=null && String.valueOf(sdata.get("Quantity"))!=null && !"".equals(String.valueOf(sdata.get("Quantity")))){
+ 				 
+ 					 if(map.get("DiscountRate") !=null && !"".equals(String.valueOf(map.get("DiscountRate")))){
+ 						 DiscountRate =String.valueOf(map.get("DiscountRate"));
+ 				     }	 
+ 				System.out.println("DiscountRate:"+DiscountRate);	 
+ 				  sdata.put("Amount",new BigDecimal(Double.valueOf(String.valueOf(map.get("UnitPrice")))).multiply(new BigDecimal(DiscountRate)).divide(new BigDecimal(10.0))
+ 				 .multiply(new BigDecimal(Double.valueOf(String.valueOf(sdata.get("Quantity"))))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
+ 				 }else{
+ 					 sdata.put("Amount",""); 
+ 				 } //精确到尺码的金额，为置空
+ 				 
+ 				 sizeData.add(sdata);
+ 			 }
+ 			 datamap.put("PurchaseDetailID", String.valueOf(map.get("PurchaseDetailID")));
+ 			 datamap.put("PurchaseID", String.valueOf(map.get("PurchaseID")));
+ 			 datamap.put("GoodsID", String.valueOf(map.get("GoodsID")));
+ 			 datamap.put("Code", String.valueOf(map.get("Code")));
+ 			 datamap.put("Name", String.valueOf(map.get("Name")));
+ 			 datamap.put("ColorTitle", "颜色");
+ 			 datamap.put("ColorID", String.valueOf(map.get("ColorID")));
+ 			 datamap.put("Color", String.valueOf(map.get("Color")));
+ 			 if(!"".equals(String.valueOf(map.get("Discount"))) && map.get("Discount") !=null){
+ 			 datamap.put("Discount", new BigDecimal(String.valueOf(map.get("Discount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
+ 			 }else{
+ 				 datamap.put("Discount","");	 
+ 			 }
+ 			 if(!"".equals(String.valueOf(map.get("DiscountRate"))) && map.get("DiscountRate") !=null){
+ 			 datamap.put("DiscountRate", new BigDecimal(String.valueOf(map.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+ 			 }else{
+ 			 datamap.put("DiscountRate","");
+ 			 }
+ 			 if(!"".equals(String.valueOf(map.get("Quantity"))) && map.get("Quantity") !=null){
+ 			 datamap.put("Quantity", Integer.valueOf(String.valueOf(map.get("Quantity"))).intValue()*direction); 
+ 			 }else{
+ 				 datamap.put("Quantity","");	 
+ 			 }
+ 			 
+ 			 if(!"".equals(String.valueOf(map.get("UnitPrice"))) && map.get("UnitPrice") !=null)//单价
+				 {
+ 				 datamap.put("UnitPrice", new BigDecimal(Double.valueOf(String.valueOf(map.get("UnitPrice")))).setScale(2,BigDecimal.ROUND_DOWN));
+				 }else{
+					 datamap.put("UnitPrice","");
+				 }
+ 			 
+ 			 
+ 			 if(!"".equals(String.valueOf(map.get("Amount"))) && map.get("Amount") !=null){
+ 			 datamap.put("Amount", new BigDecimal(String.valueOf(map.get("Amount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
+ 			 }else{
+ 			 datamap.put("Amount", "");	 
+ 			 }
+ 			 
+ 			 datamap.put("sizetitle", sizetitle);
+ 			 datamap.put("sizeData", sizeData);
+ 			 
+ 			 List<Map<String,Object>> right =new ArrayList<>();
+ 			 Map<String,Object> m=new LinkedHashMap<>();	
+ 			/* for(int n=0;n<2 ;n++){
+    			  Map<String,Object> m=new LinkedHashMap<>();	
+    			  if(n==0){
+    				 m.put("text", "审核");
+    				 m.put("onPress", "function() {"+
+                                       "      modal.toast({ "+
+                                       "      message: '审核', "+
+                                       "       duration: 0.3 "+
+                                       "      }); "+
+                                       " }"
+                                       );
+    			  }else if(n==1){
+    				  m.put("text", "删除");
+     				 m.put("onPress", "()=> {"+
+                                        "      modal.toast({ "+
+                                        "      message: '删除', "+
+                                        "       duration: 0.3 "+
+                                        "      }); "+
+                                        " }"
+                                        );  
+     				 m.put("style", "{ backgroundColor: '#F4333C', color: 'white' }");
+    				  
+    			  }
+    			  
+    			  right.add(m);
+    			 } */
+    			m.put("text", "删除");
+				 m.put("onPress", "()=> {"+
+                               "      modal.toast({ "+
+                               "      message: '删除', "+
+                               "       duration: 0.3 "+
+                               "      }); "+
+                               " }"
+                               );  
+				 Map<String,Object> stylemap= new LinkedHashMap<>();
+				 stylemap.put("backgroundColor", "#F4333C");
+				 stylemap.put("color", "white");
+				 m.put("style",stylemap );
+				 right.add(m);
+ 			 datamap.put("right", right);
+ 			 list.add(datamap);
+ 		 }	  
+ 		 
+ 		 j.setMsg("成功返回数据");
+ 	  }else{
+ 		 j.setMsg("暂无数据"); 
+ 	  }	
+ 	  
+          j.setSuccess(true);
+          j.setObj(list);
+ 	  
+ 	}catch(Exception e){
+ 		  j.setSuccess(false);
+           j.setMsg(e.getMessage());
+           SysLogger.error(e.getMessage(), e);
+ 	}
+ 	return j;
+ }
 
 }

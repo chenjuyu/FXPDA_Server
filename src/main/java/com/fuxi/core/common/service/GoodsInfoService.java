@@ -21,7 +21,7 @@ public interface GoodsInfoService {
     public int updateGoodsInfoMsg(String goodsId, String goodsSubType, String brandId, String brandSerialId, String kind, String age, String season, String supplierId, String supplierCode, String purchasePrice, String tradePrice, String retailSales, String retailSales1, String retailSales2,
             String retailSales3, String salesPrice1, String salesPrice2, String salesPrice3, String colorId1, String colorId2, String colorId3, String colorId4, String colorId5, String colorId6, String colorId7, String colorId8, Client client);
     //用于销售发货单的退货可能 也适合用这个
-    public List<Map<String, Object>> goodslist(String Code,String Type,String DiscountRate,int currpage,int pagesize);
+    public List<Map<String, Object>> goodslist(String Code,String Type,String CustomerID,String SupplierID,int currpage,int pagesize);
     
     
     //用于生成采购收货单 ，货品资料新增，修改 单个货品的 读取 货品颜色 没有必要分页查询 了

@@ -164,51 +164,21 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
     }
 
     @Override //此是返回货品的所有颜色的，不是只有货品 一个货品可能有多条记录  此方法还有价格 根据客户订单类型返回 用于销售发货单
-	public List<Map<String, Object>> goodslist(String Code,String Type, String CustomerID,int currpage,int pagesize) {
+	public List<Map<String, Object>> goodslist(String Code,String Type, String CustomerID,String SupplierID,int currpage,int pagesize) {
 		//代替货品的折折扣，客户的折扣  ,默认为0.0
 		StringBuffer sb=new StringBuffer();
-		String TypeStr ="PriceType";
-		String DiscountRateStr="DiscountRate";
-		if(Type=="批发"){
-		  TypeStr ="PriceType";
-		  DiscountRateStr="DiscountRate";
-		}else if(Type=="订货"){
-		 TypeStr ="OrderPriceType";
-		 DiscountRateStr="OrderDiscount";
-		}else if(Type=="配货"){
-			 TypeStr ="AllotPriceType";		
-			 DiscountRateStr="AllotDiscount";
-		}else if(Type=="补货"){
-			 TypeStr ="ReplenishType";	
-			 DiscountRateStr="ReplenishDiscount";
-		}
-		
-		String sql="select CustomerID,Customer,"+TypeStr+" PriceType , "+DiscountRateStr+" DiscountRate  from Customer where CustomerID = ? ";
-	   List<Map<String,Object>> cust=	commonDao.findForJdbc(sql,CustomerID);
-	   
-	   System.out.println("价格类型："+String.valueOf(cust.get(0).get("PriceType")));
-	   System.out.println("折扣："+String.valueOf(cust.get(0).get("DiscountRate")));
-	   
-	   String PriceType="零售价";
-	   if(!"".equals(String.valueOf(cust.get(0).get("PriceType"))) && cust.get(0).get("PriceType") !=null && !"null".equals(String.valueOf(cust.get(0).get("PriceType")))){
-		   PriceType =String.valueOf(cust.get(0).get("PriceType"));  //零售价，批发价
-	   }
-	        //返回真实字段
-	   
-	  String PriceField ="RetailSales";
-	  sql ="select  dbo.GetCustPriceTypeOfFieldName('"+PriceType+"') PriceType";
-	  
-	  List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql);
-	  
-	  System.out.println("价格类型字段："+String.valueOf(custPriceType.get(0).get("PriceType")));
-	  
-	  if(custPriceType.get(0).get("PriceType") !=null && !"null".equals(custPriceType.get(0).get("PriceType")) && !"".equals(String.valueOf(custPriceType.get(0).get("PriceType")))){
-		  PriceField =String.valueOf(custPriceType.get(0).get("PriceType"));
-	  }
-		String DiscountRate="0";
-		
-		if(cust.get(0).get("DiscountRate") !=null && !"".equals(String.valueOf(cust.get(0).get("DiscountRate"))) && !"null".equalsIgnoreCase(String.valueOf(cust.get(0).get("DiscountRate")))){
-			DiscountRate =String.valueOf(cust.get(0).get("DiscountRate"));
+	
+		String PriceField=""; 
+		String DiscountRate ="";
+		Map<String,String> dmap=null; 
+		if(CustomerID !=null && !"".equals(CustomerID)){ //代表是销售发，退货单
+			dmap =this.getTypeColumnSales(Type, CustomerID);
+			PriceField =dmap.get("PriceField");
+			DiscountRate=dmap.get("DiscountRate");
+		}else if(SupplierID !=null && !"".equals(SupplierID)){//采购收，退货单
+			dmap =this.getTypeColumn(SupplierID, Type);
+			PriceField =dmap.get("PriceField");
+			DiscountRate=dmap.get("DiscountRate");
 		}
 		
 		
@@ -226,7 +196,7 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
 		for(int i=0;i< ls.size(); i++){
 			Map<String,Object> map= ls.get(i);
 			
-			sql="select a.GoodsID,a.ColorID,c.Color from GoodsColor a join Color c on a.ColorID=c.ColorID where a.GoodsID =? ";
+			String	sql="select a.GoodsID,a.ColorID,c.Color from GoodsColor a join Color c on a.ColorID=c.ColorID where a.GoodsID =? ";
 			List<Map<String, Object>> color=commonDao.findForJdbc(sql,String.valueOf(map.get("GoodsID")));
 			for(int j =0;j<color.size();j++){ //第个颜色包三个属性 一个颜色 一个map
 				
@@ -547,9 +517,103 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
 		return msg;
 	}
     
-  
-    
-    
+    //返回货品资料对应的价格字段  用于采购单，采购收货，退货，订单也可吧
+	 private Map<String,String> getTypeColumn(String supplierId, String type) {
+	       String column = null;
+	        StringBuffer sb = new StringBuffer(); //加入返回折扣字段
+	        sb.append("select priceType,DiscountRate from supplier where supplierId = ? ");
+	       
+	        List<Map<String,Object>> ls= commonDao.findForJdbc(sb.toString(), supplierId);
+	        Map<String,String> map=new LinkedHashMap<String,String>();
+	        String data = String.valueOf(ls.get(0).get("priceType"));
+	        String DiscountRate="0";
+	        
+	        if (null == data || "".equals(data) || "null".equals(data)) {
+	            //return null;
+	        	column = "PurchasePrice";
+	        }
+	        if(ls.get(0).get("DiscountRate") !=null && !"".equals(ls.get(0).get("DiscountRate")))
+	        {   
+	        	DiscountRate=String.valueOf(new BigDecimal(String.valueOf(ls.get(0).get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+	        	
+	        }	
+	        	
+	        if (data.contains("零售价")) {
+	            if ("零售价".equals(data)) {
+	                column = "RetailSales";
+	            } else if ("零售价2".equals(data)) {
+	                column = "RetailSales1";
+	            } else {
+	                column = "RetailSales" + (Integer.parseInt(data.substring(data.length() - 1)) - 1);
+	            }
+	        } else if (data.contains("批发价")) {
+	            if ("批发价".equals(data)) {
+	                column = "TradePrice";
+	            } else if ("批发价2".equals(data)) {
+	                column = "SalesPrice1";
+	            } else {
+	                column = "SalesPrice" + (Integer.parseInt(data.substring(data.length() - 1)) - 1);
+	            }
+	        } else if ("参考进价".equals(data)) {
+	            column = "PurchasePrice";
+	        }
+	       // column = "g." + column;
+	        map.put("PriceField", column);
+	        map.put("DiscountRate", DiscountRate);
+	        return map;
+	 }
+	 //销售发货单，退货单
+	 private Map<String,String> getTypeColumnSales(String Type,String CustomerID) {
+	 
+			String TypeStr ="PriceType";
+			String DiscountRateStr="DiscountRate";
+			if(Type=="批发"){ //销售发货单，单据类别
+			  TypeStr ="PriceType";
+			  DiscountRateStr="DiscountRate";
+			}else if(Type=="订货"){
+			 TypeStr ="OrderPriceType";
+			 DiscountRateStr="OrderDiscount";
+			}else if(Type=="配货"){
+				 TypeStr ="AllotPriceType";		
+				 DiscountRateStr="AllotDiscount";
+			}else if(Type=="补货"){
+				 TypeStr ="ReplenishType";	
+				 DiscountRateStr="ReplenishDiscount";
+			}
+			
+			String sql="select CustomerID,Customer,"+TypeStr+" PriceType , "+DiscountRateStr+" DiscountRate  from Customer where CustomerID = ? ";
+		   List<Map<String,Object>> cust=	commonDao.findForJdbc(sql,CustomerID);
+		   
+		   System.out.println("价格类型："+String.valueOf(cust.get(0).get("PriceType")));
+		   System.out.println("折扣："+String.valueOf(cust.get(0).get("DiscountRate")));
+		   
+		   String PriceType="零售价";
+		   if(!"".equals(String.valueOf(cust.get(0).get("PriceType"))) && cust.get(0).get("PriceType") !=null && !"null".equals(String.valueOf(cust.get(0).get("PriceType")))){
+			   PriceType =String.valueOf(cust.get(0).get("PriceType"));  //零售价，批发价
+		   }
+		        //返回货品资料的真实字段  默认零售价
+		   
+		  String PriceField ="RetailSales";
+		  sql ="select  dbo.GetCustPriceTypeOfFieldName('"+PriceType+"') PriceType";
+		  
+		  List<Map<String,Object>> custPriceType=	commonDao.findForJdbc(sql);
+		  
+		  System.out.println("价格类型字段："+String.valueOf(custPriceType.get(0).get("PriceType")));
+		  
+		  if(custPriceType.get(0).get("PriceType") !=null && !"null".equals(custPriceType.get(0).get("PriceType")) && !"".equals(String.valueOf(custPriceType.get(0).get("PriceType")))){
+			  PriceField =String.valueOf(custPriceType.get(0).get("PriceType"));
+		  }
+			String DiscountRate="0";
+			
+			if(cust.get(0).get("DiscountRate") !=null && !"".equals(String.valueOf(cust.get(0).get("DiscountRate"))) && !"null".equalsIgnoreCase(String.valueOf(cust.get(0).get("DiscountRate")))){
+				DiscountRate =String.valueOf(cust.get(0).get("DiscountRate"));
+			}
+			Map<String,String> map=new LinkedHashMap<String,String>();
+			map.put("PriceField", PriceField);
+			map.put("DiscountRate", DiscountRate);
+			return map;
+	 
+	 }
     
 
 }

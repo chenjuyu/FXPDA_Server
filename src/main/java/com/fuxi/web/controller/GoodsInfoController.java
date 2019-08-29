@@ -97,9 +97,10 @@ public class GoodsInfoController extends BaseController {
         	   String Code = oConvertUtils.getString(req.getParameter("Code"));
         	   String Type = oConvertUtils.getString(req.getParameter("Type"));
         	   String CustomerID=oConvertUtils.getString(req.getParameter("CustomerID"));
+        	   String SupplierID=oConvertUtils.getString(req.getParameter("SupplierID"));
         	   int page = Integer.parseInt(oConvertUtils.getString(req.getParameter("page")));
                //此是返回货品的所有颜色的，不是只有货品 一个货品可能有多条记录
-              List<Map<String,Object>> ls=goodsInfoService.goodslist(Code,Type, CustomerID, page, 15);	 
+              List<Map<String,Object>> ls=goodsInfoService.goodslist(Code,Type, CustomerID,SupplierID, page, 15);	 
               System.out.println("ls总条数："+ls.size());
              // List<Map<String,Object>> goodslist=new ArrayList<>();
               if(ls.size()>0){

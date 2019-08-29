@@ -746,7 +746,7 @@ public class PurchaseImpl implements PurchaseService {
             	System.out.println("Field的"+Field);
             	
             	String UnitPrice =null;
-            	if("".equals(map.get("UnitPrice")) || map.get("UnitPrice")==null){
+            	if("".equals(map.get("UnitPrice")) || map.get("UnitPrice")==null || new BigDecimal(String.valueOf(map.get("UnitPrice"))).compareTo(BigDecimal.ZERO)  == 0){
             		UnitPrice=null;
             	}else {
             		UnitPrice =String.valueOf(map.get("UnitPrice"));
@@ -756,7 +756,7 @@ public class PurchaseImpl implements PurchaseService {
             	  if(!"".equals(map.get("DiscountRate")) && map.get("DiscountRate") !=null)
 	                {
             		  DiscountRate =String.valueOf(map.get("DiscountRate"));
-            		  if(UnitPrice !=null){
+            		  if(UnitPrice !=null ){
             		  DiscountPrice =String.valueOf(new BigDecimal(UnitPrice).multiply(new BigDecimal(DiscountRate)).divide(new BigDecimal(10.0)).setScale(2,BigDecimal.ROUND_DOWN)) ;//自动算
             		  }
 	                }
@@ -876,7 +876,7 @@ public class PurchaseImpl implements PurchaseService {
 	    		  
 	    		  
 	           	String UnitPrice =null;
-          	if("".equals(map2.get("UnitPrice")) || map2.get("UnitPrice")==null){
+          	if("".equals(map2.get("UnitPrice")) || map2.get("UnitPrice")==null || new BigDecimal(String.valueOf(map2.get("UnitPrice"))).compareTo(BigDecimal.ZERO)  == 0){
           		UnitPrice=null;
           	}else {
           		UnitPrice =String.valueOf(map2.get("UnitPrice"));
@@ -929,7 +929,7 @@ public class PurchaseImpl implements PurchaseService {
 	    		   
 	    		   sql="Insert into PurchaseDetailTemp(IndexNo,PurchaseID,GoodsID,ColorID,"+Field+"Quantity,UnitPrice,DiscountRate,DiscountPrice,Discount,Amount,sizeIndex,RetailSales,RetailAmount)"+
 	            		   "select "+index+",'"+PurchaseID+"','"+String.valueOf(map2.get("GoodsID"))+"','"+String.valueOf(map2.get("ColorID"))+"',"
-	            		      +FieldValue+"'"+String.valueOf(Integer.parseInt(String.valueOf(map2.get("Quantity")))*direction)+"',"+UnitPrice+","+DiscountRate+","+DiscountPrice+","+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount+""; 	
+	            		      +FieldValue+"'"+String.valueOf(Integer.parseInt(String.valueOf(map2.get("Quantity")))*direction)+"',"+UnitPrice+","+DiscountRate+","+DiscountPrice+","+dDiscount+","+Amount+","+sizIndex+","+RetailSales+","+RetailAmount+""; 	
 	               commonDao.executeSql(sql);
 	    		      
 	    	   } 	
