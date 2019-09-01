@@ -23,6 +23,7 @@ import com.fuxi.core.common.model.json.AjaxJson;
 import com.fuxi.core.common.service.SalesService;
 import com.fuxi.system.util.Client;
 import com.fuxi.system.util.DataUtils;
+import com.fuxi.system.util.MyTools;
 import com.fuxi.system.util.ResourceUtil;
 import com.fuxi.system.util.SysLogger;
 import com.fuxi.system.util.oConvertUtils;
@@ -114,7 +115,7 @@ public class SalesController extends BaseController {
     }
     
     /*
-     * 销售发货单 主表信息 新写
+     * 销售 发退货单 主表信息 新写
      * 
      * */
     @RequestMapping(params = "saleslist")
@@ -134,11 +135,12 @@ public class SalesController extends BaseController {
           String departmentId = oConvertUtils.getString(req.getParameter("departmentId"));
           String customerId = oConvertUtils.getString(req.getParameter("customerId"));
           String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
+          int direction =Integer.parseInt(oConvertUtils.getString(req.getParameter("direction")));//销售发，退货标志
           StringBuffer sb = new StringBuffer();
           sb.append(
-                  " select so.SalesID, de.Department,so.DepartmentID ,so.PaymentTypeID,so.ReceivalAmount, No,so.Type,so.CustomerID,so.EmployeeID,LastNeedRAmount='', CONVERT(varchar(10), Date, 121) Date,isnull(QuantitySum,0) QuantitySum," + "AmountSum,AuditFlag,Convert(varchar(10),so.AuditDate,121) AuditDate,Convert(varchar(19),so.madebydate,121) MadeByDate,(select Name from Employee where employeeId = so.EmployeeId) Name,"
+                  " select so.SalesID,so.Direction,so.TallyFlag, de.Department,so.DepartmentID ,so.PaymentTypeID,so.ReceivalAmount, No,so.Type,so.CustomerID,so.EmployeeID,LastNeedRAmount='', CONVERT(varchar(10), Date, 121) Date,isnull(QuantitySum*so.direction,0) QuantitySum," + "(AmountSum*direction) AmountSum,AuditFlag,Convert(varchar(10),so.AuditDate,121) AuditDate,Convert(varchar(19),so.madebydate,121) MadeByDate,(select Name from Employee where employeeId = so.EmployeeId) Name,"
                   +"(select PaymentType from PaymentType where PaymentTypeID=so.PaymentTypeID) PaymentType ,"        + "isnull(so.Memo,'') Memo,(select Customer from Customer where CustomerId = so.CustomerId) Customer," + "(select Brand from Brand where BrandId = so.BrandId) Brand,(select no from salesOrder where salesorderId = so.salesorderId) OrderNo from Sales so  ")
-                  .append(" left join Department de on de.DepartmentID = so.DepartmentID where so.DepartmentID in (").append(userRight).append(") and direction = '1'  ");
+                  .append(" left join Department de on de.DepartmentID = so.DepartmentID where so.DepartmentID in (").append(userRight).append(") and direction = "+direction+"  ");
           // 按条件查询
           if (null != audit && "0".equals(audit)) {
               // 未审核
@@ -386,6 +388,7 @@ public class SalesController extends BaseController {
         List<Map<String, Object>> list =new ArrayList<>();
     	try{
     		String SalesID = oConvertUtils.getString(req.getParameter("SalesID"));
+    		int direction =Integer.parseInt(oConvertUtils.getString(req.getParameter("direction"))); //销售退货单要以正数显示
     		StringBuffer sb = new StringBuffer();
     	  sb.append("Select a.*,b.Code,b.SupplierCode, b.Name,b.Model,b.Unit,c.Color,b.GroupID,b.GroupNo,d.No as SalesOrderNo,"+
     		"b.StopFlag,b.age,b.Season,br.brand,b.RetailSales1,b.RetailSales2,b.PurchasePrice,bs.Serial,st.Storage "+
@@ -434,7 +437,7 @@ public class SalesController extends BaseController {
     					 } 
     				    if(map.get("x_"+String.valueOf(smap.get("No"))) !=null && !"null".equalsIgnoreCase(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))) && !"".equals(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))))	 
     					  {	 
-    					  sdata.put("Quantity",Integer.parseInt(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))));
+    					  sdata.put("Quantity",Integer.parseInt(String.valueOf(map.get("x_"+String.valueOf(smap.get("No")))))*direction);
     					  }    					
     					 }else{
     					 sdata.put("Quantity",""); 
@@ -443,7 +446,7 @@ public class SalesController extends BaseController {
     				 }else{
     					 if(!"0".equals(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))) && map.get("x_"+String.valueOf(smap.get("No"))) !=null && !"".equals(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))))
     				     {
-    						 sdata.put("Quantity",Integer.parseInt(String.valueOf(map.get("x_"+String.valueOf(smap.get("No"))))));
+    						 sdata.put("Quantity",Integer.parseInt(String.valueOf(map.get("x_"+String.valueOf(smap.get("No")))))*direction);
     				     }else {
     				    	 sdata.put("Quantity",""); 
     				     }
@@ -480,6 +483,20 @@ public class SalesController extends BaseController {
     			 datamap.put("ColorTitle", "颜色");
     			 datamap.put("ColorID", String.valueOf(map.get("ColorID")));
     			 datamap.put("Color", String.valueOf(map.get("Color")));
+    			 
+    			 //09.01 加载入货品图片
+    			 if(MyTools.isExists(String.valueOf(map.get("Code"))) !=null )
+    			 {
+    				 String path1 = req.getContextPath();//项目的名称 
+    		            String basePath = req.getScheme()+"://"+req.getServerName()+":"+req.getServerPort()+"/";
+    		            
+    		          String  url=basePath+"images/"+MyTools.isExists(String.valueOf(map.get("Code")));
+    		            
+    				 datamap.put("img", url);	   
+    			 }else{
+    				 datamap.put("img", ""); 
+    			 }
+    			 
     			 if(!"".equals(String.valueOf(map.get("Discount"))) && map.get("Discount") !=null){
     			 datamap.put("Discount", new BigDecimal(String.valueOf(map.get("Discount"))).setScale(2,BigDecimal.ROUND_DOWN));
     			 }else{
@@ -491,7 +508,7 @@ public class SalesController extends BaseController {
     			 datamap.put("DiscountRate","");
     			 }
     			 if(!"".equals(String.valueOf(map.get("Quantity"))) && map.get("Quantity") !=null){
-    			 datamap.put("Quantity", Integer.valueOf(String.valueOf(map.get("Quantity"))).intValue()); 
+    			 datamap.put("Quantity", Integer.valueOf(String.valueOf(map.get("Quantity"))).intValue()*direction); 
     			 }else{
     				 datamap.put("Quantity","");	 
     			 }
@@ -505,7 +522,7 @@ public class SalesController extends BaseController {
     			 
     			 
     			 if(!"".equals(String.valueOf(map.get("Amount"))) && map.get("Amount") !=null){
-    			 datamap.put("Amount", new BigDecimal(String.valueOf(map.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+    			 datamap.put("Amount", new BigDecimal(String.valueOf(map.get("Amount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
     			 }else{
     			 datamap.put("Amount", "");	 
     			 }

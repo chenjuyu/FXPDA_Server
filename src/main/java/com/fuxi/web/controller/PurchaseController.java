@@ -24,6 +24,7 @@ import com.fuxi.core.common.model.json.AjaxJson;
 import com.fuxi.core.common.service.PurchaseService;
 import com.fuxi.system.util.Client;
 import com.fuxi.system.util.DataUtils;
+import com.fuxi.system.util.MyTools;
 import com.fuxi.system.util.ResourceUtil;
 import com.fuxi.system.util.SysLogger;
 import com.fuxi.system.util.oConvertUtils;
@@ -138,7 +139,7 @@ public class PurchaseController extends BaseController {
               int direction =Integer.parseInt(oConvertUtils.getString(req.getParameter("direction")));//代表收，退
               
               StringBuffer sb = new StringBuffer();
-              sb.append(" select so.PurchaseID,so.SupplierID,so.DepartmentID, de.Department ,so.Type, No, CONVERT(varchar(100), Date, 111) Date,isnull(QuantitySum*so.direction,0) QuantitySum,").append("(AmountSum*so.direction) AmountSum,AuditFlag,so.MadeBy,so.madebydate,isnull((select Supplier from Supplier s where so.SupplierId = s.SupplierId),'') Supplier,")
+              sb.append(" select so.PurchaseID,so.SupplierID,so.TallyFlag,so.DepartmentID, de.Department ,so.Type, No, CONVERT(varchar(100), Date, 111) Date,isnull(QuantitySum*so.direction,0) QuantitySum,").append("(AmountSum*so.direction) AmountSum,AuditFlag,so.MadeBy,so.madebydate,isnull((select Supplier from Supplier s where so.SupplierId = s.SupplierId),'') Supplier,")
                       .append("(select Name from Employee where employeeId = so.EmployeeId) Employee,isnull(so.Memo,'') Memo,").append("(select Brand from Brand where BrandId = so.BrandId) Brand from Purchase so  ")
                       .append(" left join Department de on de.DepartmentID = so.DepartmentID where so.DepartmentID in (").append(userRight).append(") and direction ="+direction+"  ");
               // 按条件查询
@@ -480,6 +481,7 @@ public class PurchaseController extends BaseController {
             String direction = oConvertUtils.getString(req.getParameter("direction"));
             String PurchaseID = oConvertUtils.getString(req.getParameter("PurchaseID"));
             String departmentid = oConvertUtils.getString(req.getParameter("departmentid"));
+            int AuditFlag= Integer.parseInt(oConvertUtils.getString(req.getParameter("AuditFlag")));
             if ("-1".equals(direction)) {
                 // 调用存储过程生成进仓单
                 commonDao.getStock(95, 1, PurchaseID, departmentid, client.getUserName());
@@ -488,9 +490,15 @@ public class PurchaseController extends BaseController {
                 commonDao.getStock(22, 1, PurchaseID, departmentid, client.getUserName());
             }
             // 更新主表
+            
             StringBuilder sb = new StringBuilder();
+            if(AuditFlag==1){
             sb.append(" Update Purchase set AuditFlag = 1, AuditDate = getdate(), Year = '").append(DataUtils.getYear()).append("' , Month = '").append(DataUtils.getStringMonth()).append("' ").append(" where PurchaseID = '").append(PurchaseID).append("' ; ");
+            }else{
+            sb.append("Update Purchase Set Audit=Null,AuditFlag=0,AuditDate=Null Where PurchaseID='"+PurchaseID+"'");	
+            }
             commonDao.executeSql(sb.toString());
+            j.setSuccess(true);
         } catch (Exception e) {
             j.setSuccess(false);
             j.setMsg(e.getMessage());
@@ -648,6 +656,9 @@ public class PurchaseController extends BaseController {
         		}
         	 } 	
         }
+         
+        System.out.println("最终的dataList:"+dataList.toString());
+        
         
         
         List<Map<String, Object>> tmpList = new ArrayList<Map<String, Object>>();
@@ -764,6 +775,9 @@ public class PurchaseController extends BaseController {
  	try{
  		String PurchaseID = oConvertUtils.getString(req.getParameter("PurchaseID"));
  		int direction=Integer.parseInt(oConvertUtils.getString(req.getParameter("direction"))); //退货时，要按-1让显示 变成正数
+ 		
+ 		System.out.print("direction:"+direction);
+ 		
  		StringBuffer sb = new StringBuffer();
  	  sb.append("Select a.*,b.Code,b.SupplierCode, b.Name,b.Model,b.Unit,c.Color,b.GroupID,b.GroupNo,d.No as SalesOrderNo,"+
  		"b.StopFlag,b.age,b.Season,br.brand,b.RetailSales1,b.RetailSales2,b.PurchasePrice,bs.Serial,st.Storage "+
@@ -842,8 +856,18 @@ public class PurchaseController extends BaseController {
  						 DiscountRate =String.valueOf(map.get("DiscountRate"));
  				     }	 
  				System.out.println("DiscountRate:"+DiscountRate);	 
+ 				
+ 				//因为上面 数量 已经乘以 direction 了，后面两个都是 正数,所以金额这里不能再乘以 direction .multiply(new BigDecimal(direction))
+ 				
  				  sdata.put("Amount",new BigDecimal(Double.valueOf(String.valueOf(map.get("UnitPrice")))).multiply(new BigDecimal(DiscountRate)).divide(new BigDecimal(10.0))
- 				 .multiply(new BigDecimal(Double.valueOf(String.valueOf(sdata.get("Quantity"))))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
+ 				 .multiply(new BigDecimal(Double.valueOf(String.valueOf(sdata.get("Quantity"))))).setScale(2,BigDecimal.ROUND_DOWN));
+ 				  
+ 				  System.out.println("单价："+new BigDecimal(Double.valueOf(String.valueOf(map.get("UnitPrice")))));
+ 				  System.out.println("尺码中的数量："+ String.valueOf(sdata.get("Quantity")));
+ 				 System.out.println("尺码中的折扣："+ new BigDecimal(DiscountRate));
+ 				
+ 				  System.out.println("尺码中的金额："+new BigDecimal(Double.valueOf(String.valueOf(map.get("UnitPrice")))).multiply(new BigDecimal(DiscountRate)).divide(new BigDecimal(10.0))
+ 		 				 .multiply(new BigDecimal(Double.valueOf(String.valueOf(sdata.get("Quantity"))))).setScale(2,BigDecimal.ROUND_DOWN));
  				 }else{
  					 sdata.put("Amount",""); 
  				 } //精确到尺码的金额，为置空
@@ -858,6 +882,22 @@ public class PurchaseController extends BaseController {
  			 datamap.put("ColorTitle", "颜色");
  			 datamap.put("ColorID", String.valueOf(map.get("ColorID")));
  			 datamap.put("Color", String.valueOf(map.get("Color")));
+ 			 
+ 			 
+ 			 //09.01 加载入货品图片
+			 if(MyTools.isExists(String.valueOf(map.get("Code"))) !=null )
+			 {
+				 String path1 = req.getContextPath();//项目的名称 
+		            String basePath = req.getScheme()+"://"+req.getServerName()+":"+req.getServerPort()+"/";
+		            
+		          String  url=basePath+"images/"+MyTools.isExists(String.valueOf(map.get("Code")));
+		            
+				 datamap.put("img", url);	   
+			 }else{
+				 datamap.put("img", ""); 
+			 }
+ 			 
+ 			 
  			 if(!"".equals(String.valueOf(map.get("Discount"))) && map.get("Discount") !=null){
  			 datamap.put("Discount", new BigDecimal(String.valueOf(map.get("Discount"))).multiply(new BigDecimal(direction)).setScale(2,BigDecimal.ROUND_DOWN));
  			 }else{

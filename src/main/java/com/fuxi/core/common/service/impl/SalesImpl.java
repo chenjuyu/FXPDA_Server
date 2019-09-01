@@ -452,11 +452,12 @@ public class SalesImpl implements SalesService {
     	               System.out.println("Discount:"+String.valueOf((map.get("Discount"))));
     	               
     	               if(map.get("Amount") !=null && !"".equals(String.valueOf((map.get("Amount")))) && !"null".equals(String.valueOf(map.get("Amount"))) ){
-    	            	   AmountSum.add(new BigDecimal(String.valueOf(map.get("Amount"))).multiply(new BigDecimal(direction))).setScale(2,BigDecimal.ROUND_DOWN);
+    	            	   System.out.println("Amount22222:"+new BigDecimal(String.valueOf(map.get("Amount"))).multiply(new BigDecimal(direction)));
+    	            	   AmountSum=AmountSum.add(new BigDecimal(String.valueOf(map.get("Amount"))).multiply(new BigDecimal(direction))).setScale(2,BigDecimal.ROUND_DOWN);
     	               }
     	               
     	               if(map.get("Discount") !=null && !"".equals(String.valueOf(map.get("Discount"))) && !"null".equals(String.valueOf(map.get("Discount")))){
-    	            	   Discount.add(new BigDecimal(String.valueOf(map.get("Discount"))).multiply(new BigDecimal(direction))).setScale(2, BigDecimal.ROUND_DOWN);
+    	            	   Discount=Discount.add(new BigDecimal(String.valueOf(map.get("Discount"))).multiply(new BigDecimal(direction))).setScale(2, BigDecimal.ROUND_DOWN);
     	               }
     	               
     	               //AmountSum.add((map.get("Amount")==null || "".equals(map.get("Discount")))?new BigDecimal(0):new BigDecimal(String.valueOf(map.get("Amount")))).setScale(2,BigDecimal.ROUND_DOWN);
@@ -543,6 +544,7 @@ public class SalesImpl implements SalesService {
 	               }
 	               System.out.println("尺码组去掉最后一位:"+DisplaySizeGroup);
 	              
+	               System.out.println("AmountSum总金额:"+AmountSum);
     	            
     	            sql ="select isnull(Sum(Quantity),0) Qty,isnull(Sum(Discount),0) DiscountSum,isnull(Sum(Amount),0) Amt,isnull(Sum(RetailAmount),0) RAmt from SalesDetailTemp where SalesID= ? ";
      	    	    List<Map<String,Object>> ls= commonDao.findForJdbc(sql, SalesID);

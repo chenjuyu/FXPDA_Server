@@ -26,4 +26,10 @@ public interface SalesOrderService {
 
     // 生成收款单
     public void generalReceival(String deptCode, String customerId, String departmentId, String employeeId, String paymentTypeId, BigDecimal arAmount, BigDecimal receivalAmount, String relationNo, String relationId, String brandId, String type, Client client) throws Exception;
+
+    public String saveSalesOrderX(List<Map<String, Object>> dataList, String salesOrderID, String customerid, String departmentid, String employeeId, String businessDeptId, String memo, String type, String typeEName, String brandId, String discountRateSum, String lastARAmount,
+            String preReceivalAmountStr, String privilegeAmount, String paymentTypeId, Client client) throws Exception;
+
+    
+
 }

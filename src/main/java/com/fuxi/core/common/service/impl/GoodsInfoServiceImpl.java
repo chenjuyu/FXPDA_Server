@@ -17,6 +17,7 @@ import com.fuxi.core.common.exception.BusinessException;
 import com.fuxi.core.common.service.GoodsInfoService;
 import com.fuxi.system.util.Client;
 import com.fuxi.system.util.DataUtils;
+import com.fuxi.system.util.MyTools;
 
 /**
  * Title: GoodsInfoServiceImpl Description: 货品业务逻辑接口实现类
@@ -358,6 +359,7 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
 			}else{
 				m.put("RetailSales", new BigDecimal(String.valueOf(m.get("RetailSales"))).setScale(2,BigDecimal.ROUND_DOWN));		
 			}
+			
 			m.put("right",right);
 		}
 		

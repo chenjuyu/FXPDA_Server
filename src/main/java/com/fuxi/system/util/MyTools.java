@@ -16,9 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -112,5 +114,43 @@ public class MyTools {
         code = yyyymmddhhmmss.format(new Date());
         return code;
     }
+    
+    /*
+     * 判断 货品图片是否存在
+     * 
+     * */
+    public static String isExists(String fileName){
+    	
+    	String CodeName=null;
+    	String path = ResourceUtil.getConfigByName("imgPath");//存放图片的文件夹
+    	if(fileName !=null && !"".equals(fileName) ){
+    		CodeName=fileName+".jpg";
+    	}
+    	File oldfile=new File(path+"/"+CodeName);
+    	if(oldfile.exists()){
+    	   return CodeName;
+    	}
+    	CodeName =fileName+".JPEG";
+    	oldfile=new File(path+"/"+CodeName);
+    	if(oldfile.exists()){
+    		 return CodeName;
+     	}
+    	CodeName =fileName+".png";
+    	oldfile=new File(path+"/"+CodeName);
+    	if(oldfile.exists()){
+    		 return CodeName;
+     	}
+    	
+    	CodeName =fileName+".gif";
+    	oldfile=new File(path+"/"+CodeName);
+    	if(oldfile.exists()){
+    		 return CodeName;
+     	}
+    	
+    	
+    	
+    	return null;
+    }
+    
 
 }

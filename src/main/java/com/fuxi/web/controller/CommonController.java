@@ -713,12 +713,17 @@ public class CommonController extends BaseController {
                     if (!file.exists()) {
                         file.mkdirs();
                     }
+                   
+                    
                     // 写入文件
                     File fNew = new File(loadpath, name);
                     try {
                         item.write(fNew);  //name.substring(name.indexOf("."), name.length()) 拿后缀名
                         renameFile(loadpath,name,SalesID+name.substring(name.indexOf("."), name.length())); //把文件 名改为传过来的名字，本地存在就删除，再命名
                         url =SalesID+name.substring(name.indexOf("."), name.length());
+                        //写入后调整 大小，因为手机拍照文件达到了4，5M
+                        ImgCompress imgadjust =new ImgCompress(loadpath+"\\"+url);
+                        imgadjust.resizeFix(500,500);
                         // 生成指定大小的图片
                         // zoomImage(fNew.getAbsolutePath(),
                         // fNew.getAbsolutePath(), 480, 800);
@@ -1325,20 +1330,28 @@ public class CommonController extends BaseController {
     public List<Map<String, Object>> checkNegativeInventoryForBackStage(CommonDao dao, List<Map<String, Object>> dataList, String hostName, String userId, String departmentId, int tableTag, String invoiceId, int sendType, int disType, int optStata, int controlFlag, int auditFlag, String noDate) {
         List<Map<String, Object>> tempList = new ArrayList<Map<String, Object>>();
         for (int i = 0; i < dataList.size(); i++) {
-            Map<String, Object> temp = dataList.get(i);
+            Map<String, Object> colortemp  = dataList.get(i);
+            //这里要要再加多一层，原先的pda是没有的 temp
+            List<Map<String,Object>> sizeData =(List<Map<String,Object>>)colortemp.get("sizeData");
+            for(int j=0;j<sizeData.size();j++){
+            	Map<String, Object>	temp =sizeData.get(j);
             String goodsId = (String) temp.get("GoodsID");
             String colorId = (String) temp.get("ColorID");
             String sizeId = (String) temp.get("SizeID");
-            int quantity = Integer.parseInt(String.valueOf(temp.get("Quantity")));
+            int quantity=0;
+            if(temp.get("Quantity") !=null && !"".equals(temp.get("Quantity"))){
+             quantity = Integer.parseInt(String.valueOf(temp.get("Quantity")));
+            }
             int stockQty = queryStockByGoods(dao, hostName, userId, departmentId, goodsId, colorId, sizeId, tableTag, invoiceId, sendType, disType, optStata, controlFlag, auditFlag, noDate);
             if (stockQty <= 0 || Math.abs(quantity) > stockQty) {
                 Map<String, Object> tmp = new HashMap<String, Object>();
-                tmp.put("GoodsCode", temp.get("GoodsCode"));
+                tmp.put("Code", colortemp.get("Code"));//temp.get("GoodsCode")
                 tmp.put("Color", temp.get("Color"));
                 tmp.put("Size", temp.get("Size"));
                 tmp.put("Quantity", temp.get("Quantity"));
                 tmp.put("StockQty", String.valueOf(stockQty));
                 tempList.add(tmp);
+            }
             }
         }
         return tempList;

@@ -20,6 +20,7 @@ import com.fuxi.core.common.dao.impl.CommonDao;
 import com.fuxi.core.common.model.json.AjaxJson;
 import com.fuxi.core.common.service.GoodsInfoService;
 import com.fuxi.system.util.Client;
+import com.fuxi.system.util.MyTools;
 import com.fuxi.system.util.ResourceUtil;
 import com.fuxi.system.util.SysLogger;
 import com.fuxi.system.util.oConvertUtils;
@@ -51,8 +52,26 @@ public class GoodsInfoController extends BaseController {
     	int page =Integer.parseInt(oConvertUtils.getString(req.getParameter("page")));
     	List<Map<String,Object>> ls=goodsInfoService.goodslist(Code,page,15);
     	if(ls.size()>0){
+    		
+    		for(int i=0;i<ls.size();i++){
+    			Map<String,Object> map=ls.get(i);
+    			
+    			 if(MyTools.isExists(String.valueOf(map.get("Code"))) !=null )
+    			 {
+    				 String path1 = req.getContextPath();//项目的名称 
+    		            String basePath = req.getScheme()+"://"+req.getServerName()+":"+req.getServerPort()+"/";
+    		            
+    		          String  url=basePath+"images/"+MyTools.isExists(String.valueOf(map.get("Code")));
+    		            
+    		          map.put("img", url);	   
+    			 }else{
+    				 map.put("img", ""); 
+    			 }
+    			
+    		}
     		j.setSuccess(true);
     		j.setObj(ls);
+    		System.out.println("ls返回数据");
     	}else{
     		j.setSuccess(true);
     		j.setMsg("暂无数据");
@@ -106,26 +125,20 @@ public class GoodsInfoController extends BaseController {
               if(ls.size()>0){
             	for(int i=0;i<ls.size();i++){
             		Map<String,Object> map=ls.get(i);
-            		//Map<String,Object> m1=getMap(goodslist,map);
             		
-            	/*	if(m1==null){
-            			Map<String,Object> m2=new LinkedHashMap<>();	
-            			m2.put("GoodsID", String.valueOf(map.get("GoodsID")));
-            			m2.put("Code", String.valueOf(map.get("Code")));
-            			m2.put("Name", String.valueOf(map.get("Name")));
-            			m2.put("GroupID", String.valueOf(map.get("GroupID")));
-            			m2.put("RetailSales", String.valueOf(map.get("RetailSales")));
-            			if(map.get("RetailSales") !=null && !"".equals(String.valueOf(map.get("RetailSales"))) && !"null".equals(String.valueOf(map.get("RetailSales")))){
-            				m2.put("RetailSales", new BigDecimal(String.valueOf(map.get("RetailSales"))).setScale(2,BigDecimal.ROUND_DOWN));
-            			}else{
-            				m2.put("RetailSales","");
-            			}
-            			
-            			m2.put("Quantity", String.valueOf(map.get("Quantity")));
-            			m2.put("Amount", String.valueOf(map.get("Amount")));
-            			
-            			goodslist.add(m2);	
-            		} */
+            		 if(MyTools.isExists(String.valueOf(map.get("Code"))) !=null )
+        			 {
+        				 String path1 = req.getContextPath();//项目的名称 
+        		            String basePath = req.getScheme()+"://"+req.getServerName()+":"+req.getServerPort()+"/";
+        		            
+        		          String  url=basePath+"images/"+MyTools.isExists(String.valueOf(map.get("Code")));
+        		            
+        		          map.put("img", url);	   
+        			 }else{
+        				 map.put("img", ""); 
+        			 }
+            		
+            	
             	}	 
                Map<String,Object> m=new LinkedHashMap<>();	
         		  m.put("goodslist", ls);
