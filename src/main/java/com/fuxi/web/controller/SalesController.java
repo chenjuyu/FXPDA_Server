@@ -215,11 +215,14 @@ public class SalesController extends BaseController {
         	}//for n 结束
         	  listmap.put("right", right);
           }
-          
-          
-          
-          
+          if(list.size()>0)
+          {
           j.setObj(list);
+          }else{
+          j.setMsg("暂无数据");  
+          }
+          
+          
       } catch (Exception e) {
           j.setSuccess(false);
           j.setMsg(e.getMessage());

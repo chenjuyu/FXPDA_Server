@@ -209,8 +209,11 @@ public class PurchaseController extends BaseController {
               }
               
              System.out.print("list:"+list.toString());
-              
+              if(list.size()>0){
               j.setObj(list);
+              }else{
+              j.setMsg("暂无数据");	  
+              }
         	 
          }catch(Exception e){
         	  j.setSuccess(false);

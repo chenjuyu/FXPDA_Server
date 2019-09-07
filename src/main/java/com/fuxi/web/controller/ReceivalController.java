@@ -74,14 +74,14 @@ public class ReceivalController extends BaseController {
                    // 按条件查询
                    if (null != audit && "0".equals(audit)) {
                        // 未审核
-                       sb.append(" and AuditFlag = '0' ");
+                       sb.append(" and a.AuditFlag = '0' ");
                    } else if (null != audit && "1".equals(audit)) {
                        // 已审核
-                       sb.append(" and AuditFlag = '1' ");
+                       sb.append(" and a.AuditFlag = '1' ");
                    }
                    // 查询单号时
                    if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
-                       sb.append(" and No = '" + no + "' ");
+                       sb.append(" and a.No = '" + no + "' ");
                    }
                    // 时间区间
                    if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
@@ -102,6 +102,7 @@ public class ReceivalController extends BaseController {
                    
                    sb.append("and  Exists(Select x.DepartmentID From DepartmentRight x, Customer y Where a.CustomerID=y.CustomerID and x.DepartmentID=y.DepartmentID and x.UserID='"+client.getUserID()+"' and x.RightFlag=1 ) "+
                     " Order by a.[Date] DESC,(a.[No]) DESC");
+                   System.out.println("sql语句:"+sb.toString());
                    List<Map<String, Object>> list = commonDao.findForJdbc(sb.toString(), page, 15);
             	   
                    for(int i=0;i<list.size();i++){
@@ -142,9 +143,12 @@ public class ReceivalController extends BaseController {
                  	  map.put("right", right); 
                 	   
                    }
+                   if(list.size()>0){
                    j.setObj(list);
                    j.setMsg("成功返回数据");
-                   
+                   }else{
+                   j.setMsg("暂无数据");	   
+                   }
                    j.setSuccess(true);
             }catch(Exception e){
             	j.setSuccess(false);

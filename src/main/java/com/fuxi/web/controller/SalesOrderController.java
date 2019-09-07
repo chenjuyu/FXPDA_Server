@@ -220,9 +220,13 @@ public class SalesOrderController extends BaseController {
               
               
               
-              
-              
-              j.setObj(list);
+              if(list.size()>0){
+                  j.setObj(list);
+                  }else{
+                  j.setMsg("暂无数据");	  
+                  }
+            
+        
         	 
         	 
          }catch(Exception e){
