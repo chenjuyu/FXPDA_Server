@@ -156,7 +156,8 @@ public class PurchaseController extends BaseController {
               }
               // 时间区间
               if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
-                  sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+                 // sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+            	  sb.append(" and so.Date >= '" + beginDate + "' and so.Date <='" + endDate + " 23:59:59.997'");
               }
               // 部门
               if (departmentId != null && !"".equals(departmentId.trim()) && !"null".equalsIgnoreCase(departmentId)) {
@@ -492,11 +493,11 @@ public class PurchaseController extends BaseController {
                 // 调用存储过程生成出仓单
                 commonDao.getStock(22, 1, PurchaseID, departmentid, client.getUserName());
             }
-            // 更新主表
+            // 更新主表, Year = '   .append(DataUtils.getYear()).append("' , Month = '").append(DataUtils.getStringMonth()).append("' ")
             
             StringBuilder sb = new StringBuilder();
             if(AuditFlag==1){
-            sb.append(" Update Purchase set AuditFlag = 1, AuditDate = getdate(), Year = '").append(DataUtils.getYear()).append("' , Month = '").append(DataUtils.getStringMonth()).append("' ").append(" where PurchaseID = '").append(PurchaseID).append("' ; ");
+            sb.append(" Update Purchase set AuditFlag = 1, AuditDate = getdate() ").append(" where PurchaseID = '").append(PurchaseID).append("' ; ");
             }else{
             sb.append("Update Purchase Set Audit=Null,AuditFlag=0,AuditDate=Null Where PurchaseID='"+PurchaseID+"'");	
             }

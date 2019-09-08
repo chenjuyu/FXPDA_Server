@@ -170,7 +170,7 @@ public class SelectController extends BaseController {
             String param = oConvertUtils.getString(req.getParameter("param"));
             int page = oConvertUtils.getInt(req.getParameter("currPage"));
             StringBuffer sb = new StringBuffer();
-            sb.append(" select Department Name,DepartmentID,MustExistsGoodsFlag from Department where WarehouseFlag = '1' and DepartmentID in (").append(userRight).append(") ");
+            sb.append(" select Department Name,DepartmentID,SettleCustID,MustExistsGoodsFlag from Department where WarehouseFlag = '1' and DepartmentID in (").append(userRight).append(") ");
             if (null != param && !param.isEmpty() && !"".equals(param)) {
                 sb.append(" and DepartmentID in ( select DepartmentID from Department where Code like '%").append(param).append("%' or Department like '%").append(param).append("%' ) ");
             }
@@ -478,8 +478,9 @@ public class SelectController extends BaseController {
         try {
             String param = oConvertUtils.getString(req.getParameter("param"));
             int page = oConvertUtils.getInt(req.getParameter("currPage"));
+            String Type =oConvertUtils.getString(req.getParameter("Type")); //收款
             StringBuffer sb = new StringBuffer();
-            sb.append(" select PaymentTypeID,PaymentType Name from PaymentType gt where gt.type = '收款' and gt.PaymentType like '%").append(param).append("%' order by len(PaymentType) asc ");
+            sb.append(" select PaymentTypeID,PaymentType Name from PaymentType gt where gt.type = '"+Type+"' and gt.PaymentType like '%").append(param).append("%' order by len(PaymentType) asc ");
             System.out.println("sql语句："+sb.toString());
             List list = commonDao.findForJdbc(sb.toString(), page, 15);
             j.setObj(list);

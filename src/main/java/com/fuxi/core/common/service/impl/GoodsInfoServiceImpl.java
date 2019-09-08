@@ -183,6 +183,11 @@ public class GoodsInfoServiceImpl implements GoodsInfoService {
 		}
 		
 		
+		//当两个都不填的时候 可能 为空 默认一个零售价给他	 最后加一个判断，不然报错
+		if("".equals(PriceField) || PriceField==null){
+			PriceField ="RetailSales";
+			DiscountRate="0";
+		}
 		
 		if(!"".equals(Code) && Code !=null){//GoodsID in('000DY','000DZ','000E0')")
 		sb.append("select GoodsID,Code,Name,GroupID,RetailSales,"+PriceField+" UnitPrice, Discount=0.0,DiscountRate="+DiscountRate+", Quantity=0,Amount=0  from Goods where (Code like '%"+Code+"%' or Name like '%"+Code+"%' or SupplierCode like '%"+Code+"%')");

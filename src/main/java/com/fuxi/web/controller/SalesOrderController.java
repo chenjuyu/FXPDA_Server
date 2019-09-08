@@ -144,7 +144,7 @@ public class SalesOrderController extends BaseController {
               String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
               StringBuffer sb = new StringBuffer();
               
-              sb.append(" select so.SalesOrderID,so.CustomerID,so.Type,so.AuditDate, (select Department from Department  where so.DepartmentID = DepartmentID) Department , No, CONVERT(varchar(100), Date, 111) Date, "
+              sb.append(" select so.SalesOrderID,so.CustomerID,so.Type,CONVERT(varchar(100), so.AuditDate, 111) AuditDate, (select Department from Department  where so.DepartmentID = DepartmentID) Department , No, CONVERT(varchar(100), Date, 111) Date, "
                       + " isnull(QuantitySum,0) QuantitySum,AmountSum,AuditFlag,so.MadeByDate,(select Name from Employee where employeeId = so.EmployeeId) Name,isnull(so.Memo,'') Memo, "
                       + " (select Customer from Customer where CustomerId = so.CustomerId) Customer,(select Brand from Brand where BrandId = so.BrandId) Brand,(select Department from Department "
                       + " where so.WarehouseId = DepartmentID) Warehouse from SalesOrder so where so.CustomerId in ( select CustomerId from Customer where DepartmentID in (" + userRight + ")) ");
@@ -162,7 +162,8 @@ public class SalesOrderController extends BaseController {
               }
               // 时间区间
               if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
-                  sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+                 // sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+                  sb.append(" and so.Date >= '" + beginDate + "' and so.Date <='" + endDate + " 23:59:59.997'");
               }
               // 部门
               if (departmentId != null && !"".equals(departmentId.trim()) && !"null".equalsIgnoreCase(departmentId)) {
@@ -652,6 +653,7 @@ public class SalesOrderController extends BaseController {
     @RequestMapping(params = "auditOrder")
     @ResponseBody
     public AjaxJson auditOrder(HttpServletRequest req) {
+    	 Client client = ResourceUtil.getClientFromSession(req);
         AjaxJson j = new AjaxJson();
         j.setAttributes(new HashMap<String, Object>());
         try {
@@ -661,10 +663,12 @@ public class SalesOrderController extends BaseController {
             
             Period p = commonDao.getPeriod(DataUtils.formatDate(new Date()));
             StringBuilder sb = new StringBuilder();
+            
+            //, Year = ' .append(p.getPeriodYeay()).append("' , Month = '").append(p.getPeriodMonth()).append("' ")
             if(AuditFlag ==1){
-            sb.append(" Update SalesOrder set AuditFlag = 1, AuditDate = getdate(), Year = '").append(p.getPeriodYeay()).append("' , Month = '").append(p.getPeriodMonth()).append("' ").append(" where SalesOrderID = '").append(SalesOrderID).append("' ");
+            sb.append(" Update SalesOrder set AuditFlag = 1, AuditDate = getdate(),Audit ='").append(client.getUserName()).append("'").append(" where SalesOrderID = '").append(SalesOrderID).append("' ");
             }else{
-            	 sb.append(" Update SalesOrder set AuditFlag = 0 ").append(" where SalesOrderID = '").append(SalesOrderID).append("' ");
+            sb.append(" Update SalesOrder set AuditFlag = 0,AuditDate=null ").append(" where SalesOrderID = '").append(SalesOrderID).append("' ");
                  	
             }
             commonDao.executeSql(sb.toString());

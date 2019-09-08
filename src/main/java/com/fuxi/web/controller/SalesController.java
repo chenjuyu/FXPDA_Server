@@ -89,7 +89,9 @@ public class SalesController extends BaseController {
             }
             // 时间区间
             if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
-                sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+               // sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+            	 sb.append(" and so.Date >= '" + beginDate + "' and so.Date <='" + endDate + " 23:59:59.997'");
+                 
             }
             // 部门
             if (departmentId != null && !"".equals(departmentId.trim()) && !"null".equalsIgnoreCase(departmentId)) {
@@ -144,18 +146,18 @@ public class SalesController extends BaseController {
           // 按条件查询
           if (null != audit && "0".equals(audit)) {
               // 未审核
-              sb.append(" and AuditFlag = '0' ");
+              sb.append(" and so.AuditFlag = '0' ");
           } else if (null != audit && "1".equals(audit)) {
               // 已审核
-              sb.append(" and AuditFlag = '1' ");
+              sb.append(" and so.AuditFlag = '1' ");
           }
           // 查询单号时
           if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
-              sb.append(" and No = '" + no + "' ");
+              sb.append(" and so.No = '" + no + "' ");
           }
           // 时间区间
           if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
-              sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+              sb.append(" and so.Date >= '" + beginDate + "' and so.Date <='" + endDate + " 23:59:59.997'");
           }
           // 部门
           if (departmentId != null && !"".equals(departmentId.trim()) && !"null".equalsIgnoreCase(departmentId)) {
@@ -170,6 +172,7 @@ public class SalesController extends BaseController {
               sb.append(" and so.employeeId = '" + employeeId + "' ");
           }
           sb.append(" order by so.madebydate desc,No desc ");
+          System.out.println("sql语句:"+sb.toString());
           List list = commonDao.findForJdbc(sb.toString(), page, 15);
           
           for(int i=0;i<list.size() ;i++){
@@ -759,10 +762,10 @@ public class SalesController extends BaseController {
                 // 调用存储过程生成出仓单  1
                 commonDao.getStock(30, AuditFlag, SalesID, departmentid, client.getUserName());
             }
-            // 更新主表
+            // 更新主表, Year = '  .append(DataUtils.getYear()).append("' , Month = '").append(DataUtils.getStringMonth()).append("' ")
             StringBuilder sb = new StringBuilder();
             if(AuditFlag==1){
-            sb.append(" Update Sales set AuditDate = getdate(), Delivered=1, Year = '").append(DataUtils.getYear()).append("' , Month = '").append(DataUtils.getStringMonth()).append("' ").append(" where SalesID = '").append(SalesID).append("' ; ");
+            sb.append(" Update Sales set AuditDate = getdate(), Delivered=1 ").append(" where SalesID = '").append(SalesID).append("' ; ");
             }else if(AuditFlag==0){
             sb.append(" Update Sales set Audit=Null,AuditFlag=0,AuditDate=Null , Delivered=0 ").append(" where SalesID = '").append(SalesID).append("' ; ");
                   	

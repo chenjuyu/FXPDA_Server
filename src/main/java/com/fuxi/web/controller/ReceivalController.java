@@ -60,7 +60,7 @@ public class ReceivalController extends BaseController {
                    String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
                    StringBuffer sb = new StringBuffer();
                    
-                   sb.append("Select a.TallyFlag,a.ReceivalID,a.No,Convert(varchar(10),a.Date,121) Date, Convert(varchar(10),a.ValidBeginDate,121) ValidBeginDate,a.QuantitySum,a.AmountSum,a.Type,a.PaymentTypeID,a.ReceivalAmount,a.AuditFlag,a.EmployeeID,a.DepartmentID,Convert(varchar(10),a.MadeByDate,121) MadeByDate,a.MadeBy,a.BrandID,a.ReceiDeptID,Convert(varchar(10),a.AuditDate,121) AuditDate, a.CustomerID ,b.Customer,c.Department,d.Name,e.PaymentType,f.[No] as OrderNo, g.FreightCorp,h.department ReceiDepartment,br.Brand,i.Department as BusinessDept"+
+                   sb.append("Select a.TallyFlag,a.ReceivalID,a.Memo,a.No,Convert(varchar(10),a.Date,121) Date, Convert(varchar(10),a.ValidBeginDate,121) ValidBeginDate,a.QuantitySum,a.AmountSum,a.Type,a.PaymentTypeID,a.ReceivalAmount,a.AuditFlag,a.EmployeeID,a.DepartmentID,Convert(varchar(10),a.MadeByDate,121) MadeByDate,a.MadeBy,a.BrandID,a.ReceiDeptID,Convert(varchar(10),a.AuditDate,121) AuditDate, a.CustomerID ,b.Customer,c.Department,d.Name,e.PaymentType,f.[No] as OrderNo, g.FreightCorp,h.department ReceiDepartment,br.Brand,i.Department as BusinessDept"+
                     " from Receival a Left Outer Join Customer b On a.CustomerID=b.CustomerID "+
                     " Left Outer Join Department c On a.DepartmentID=c.DepartmentID "+
                     " Left Outer Join Employee d On a.EmployeeID=d.EmployeeID "+
@@ -85,7 +85,9 @@ public class ReceivalController extends BaseController {
                    }
                    // 时间区间
                    if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
-                       sb.append(" and a.Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+                    //   sb.append(" and a.Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+                	   sb.append(" and a.Date >= '" + beginDate + "' and a.Date <='" + endDate + " 23:59:59.997'");
+                       
                    }
                    // 部门
                    if (departmentId != null && !"".equals(departmentId.trim()) && !"null".equalsIgnoreCase(departmentId)) {
@@ -192,5 +194,40 @@ public class ReceivalController extends BaseController {
 	        return j;
 	    }
 	    
+	    
+	    //保存单据
+	    @RequestMapping(params = "saverec")
+	    @ResponseBody
+	    public AjaxJson saverec(HttpServletRequest req){
+	    	  Client client = ResourceUtil.getClientFromSession(req);
+		      AjaxJson j = new AjaxJson();
+		      j.setAttributes(new HashMap<String, Object>());
+		      try{
+		    	  String ReceivalID=oConvertUtils.getString(req.getParameter("ReceivalID"));
+		    	  String CustomerID=oConvertUtils.getString(req.getParameter("CustomerID"));
+		    	  
+		    	  String PaymentTypeID =oConvertUtils.getString(req.getParameter("PaymentTypeID"));
+		    	  String Type =oConvertUtils.getString(req.getParameter("Type"));
+		    	  String Date=oConvertUtils.getString(req.getParameter("Date"));
+		    	  String ValidBeginDate=oConvertUtils.getString(req.getParameter("ValidBeginDate"));
+		    	  String EmpID =oConvertUtils.getString(req.getParameter("EmployeeID"));
+		    	  String ReceivalAmount =oConvertUtils.getString(req.getParameter("ReceivalAmount"));
+		    	  String LastNeedRAmount =oConvertUtils.getString(req.getParameter("LastNeedRAmount"));
+		    	  String Memo =oConvertUtils.getString(req.getParameter("Memo"));
+		    	  
+		    	  ReceivalID=  receivalService.save(ReceivalID, CustomerID, null, PaymentTypeID, Type, Date, ValidBeginDate, null, EmpID, null, ReceivalAmount,LastNeedRAmount, Memo, client);
+		    	  
+		    	 j.setSuccess(true);
+		    	 j.setMsg("操作成功");
+		    	 j.setObj(ReceivalID);
+		    	  
+		    	  
+		      }catch(Exception e){
+		    	  j.setSuccess(false);
+		          j.setMsg(e.getMessage());
+		          SysLogger.error(e.getMessage(), e);
+		      }
+		      return j;
+	    }
 
 }

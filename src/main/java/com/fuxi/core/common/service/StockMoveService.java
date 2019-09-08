@@ -20,4 +20,8 @@ public interface StockMoveService {
 
     // 转仓单条码校验
     public int coverSave(String stockMoveId, List<Map<String, Object>> dataList, Client client) throws Exception;
+    
+    // 保存转仓单
+    public String saveStockMoveX(String warehouseInId, String warehouseOutId, String employeeId, String stockMoveId, String MoveOutType,String MoveInType,String memo, List<Map<String, Object>> dataList, String brandId, Client client) throws Exception;
+
 }
