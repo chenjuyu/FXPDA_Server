@@ -2,6 +2,7 @@ package com.fuxi.core.common.service;
 
 import java.util.List;
 import java.util.Map;
+
 import com.fuxi.system.util.Client;
 
 /**
@@ -20,4 +21,7 @@ public interface StockService {
 
     // 进(出)仓单条码校验
     public int coverSave(String stockMoveId, List<Map<String, Object>> dataList, Client client) throws Exception;
+    
+    //增加   进出仓单保存
+    public  String saveStockX(String directionStr, List<Map<String, Object>> dataList, String StockID, String supplierid, String departmentid, String employeeId, String businessDeptId, String memo, String type, String typeEName, String brandId, Client client) throws Exception;
 }

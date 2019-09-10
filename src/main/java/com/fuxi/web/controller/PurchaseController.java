@@ -771,7 +771,7 @@ public class PurchaseController extends BaseController {
  @RequestMapping(params = "purchaseEditX")
  @ResponseBody
  
- public AjaxJson salesEditX(HttpServletRequest req){
+ public AjaxJson purchaseEditX(HttpServletRequest req){
      AjaxJson j =new AjaxJson();
      j.setAttributes(new HashMap<String, Object>());
      Client client = ResourceUtil.getClientFromSession(req);
@@ -963,14 +963,7 @@ public class PurchaseController extends BaseController {
     			  
     			  right.add(m);
     			 } */
-    			m.put("text", "删除");
-				 m.put("onPress", "()=> {"+
-                               "      modal.toast({ "+
-                               "      message: '删除', "+
-                               "       duration: 0.3 "+
-                               "      }); "+
-                               " }"
-                               );  
+    			 m.put("text", "删除");
 				 Map<String,Object> stylemap= new LinkedHashMap<>();
 				 stylemap.put("backgroundColor", "#F4333C");
 				 stylemap.put("color", "white");
