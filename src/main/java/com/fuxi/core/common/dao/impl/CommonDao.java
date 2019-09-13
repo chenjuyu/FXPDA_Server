@@ -305,6 +305,27 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
         Map map = callableStatementByName(procedure);
         return (Integer) map.get("@Qty");
     }
+    
+    
+    //Exec ExecPOSSalesUnDo 'SM0006J','900','GLY' 冲销销售小票的方法
+    
+    public void ExecPOSSalesUnDo(String posid,String deptNo,String MadeBy){
+    	 Procedure procedure = new Procedure();
+    	 procedure.setSql("ExecPOSSalesUnDo");
+    	 procedure.setVarcharParam("@posid");
+    	 procedure.setValue("@posid", posid);
+    	 procedure.setVarcharParam("@deptNo");
+    	 procedure.setValue("@deptNo", deptNo);
+    	 
+    	 procedure.setVarcharParam("@MadeBy");
+    	 procedure.setValue("@MadeBy", MadeBy);
+    	 callableStatementByName(procedure);
+    	
+    }
+    
+    
+    
+    
 
     /**
      * 店铺库存汇总表

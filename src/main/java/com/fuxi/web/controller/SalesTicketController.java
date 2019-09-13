@@ -1,16 +1,22 @@
 package com.fuxi.web.controller;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.servlet.http.HttpServletRequest;
+
 import net.sf.json.JSONArray;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+
 import com.fuxi.core.common.dao.impl.CommonDao;
 import com.fuxi.core.common.model.json.AjaxJson;
 import com.fuxi.core.common.service.SalesTicketService;
@@ -82,7 +88,7 @@ public class SalesTicketController extends BaseController {
                 j.getAttributes().put("PosSalesNo", map.get("PosSalesNo"));
                 j.getAttributes().put("AvailableIntegral", commonDao.getData("select UsablePoint from vip where vipid = ?", vipId));
             } else {
-                j.getAttributes().put("PosSalesID", "");
+                j.getAttributes().put("PosSalesID", ""); 
                 j.getAttributes().put("PosSalesNo", "");
             }
             j.getAttributes().put("tempList", tempList);
@@ -261,6 +267,34 @@ public class SalesTicketController extends BaseController {
         }
         return j;
     }
+    
+    //单据冲销功能  新写 2019。09。13
+    
+    @RequestMapping(params = "POSSalesUnDo")
+    @ResponseBody
+    public AjaxJson POSSalesUnDo (HttpServletRequest req){
+    	  AjaxJson j = new AjaxJson();
+          j.setAttributes(new HashMap<String, Object>());
+          Client client = ResourceUtil.getClientFromSession(req);
+          try {
+        	  
+        	  String POSSalesID =oConvertUtils.getString(req.getParameter("POSSalesID"));
+        	  String deptNo =oConvertUtils.getString(req.getParameter("deptNo"));
+        	  
+        	  commonDao.ExecPOSSalesUnDo(POSSalesID, deptNo, client.getUserName());
+        	  j.setMsg("冲销成功");
+          }catch(Exception e){
+        	  j.setSuccess(false);
+              j.setMsg(e.getMessage());
+              SysLogger.error(e.getMessage(), e);
+          }
+    	
+    	return j;
+    }
+    
+    
+    
+    
 
     /**
      * 获取店铺销售单
@@ -275,14 +309,102 @@ public class SalesTicketController extends BaseController {
         j.setAttributes(new HashMap<String, Object>());
         Client client = ResourceUtil.getClientFromSession(req);
         try {
-            String begindate = oConvertUtils.getString(req.getParameter("beginDate"));
-            String enddate = oConvertUtils.getString(req.getParameter("endDate"));
-            StringBuffer sql = new StringBuffer();
-            sql.append(" Select a.[No],CONVERT(varchar(100), a.[Date], 111) Date,a.VIPCode,e.Name Employee,a.QuantitySum,a.AmountSum, "
-                    + " isNull(a.CashMoney,0)+isNull(a.CardMoney,0)+isNull(CashPaper,0)+isNull(PresentAmount,0)+isNull(a.CashAmount1,0)*isNull(a.CashRate1,0)/100.0+isNull(a.DepositAmount,0)+ isNull(a.CashAmount2,0)*isNull(a.CashRate2,0)/100.0+isNull(a.OrderAmount,0) FactAmt,a.Memo "
-                    + " From POSSales a left join Employee e on a.EmployeeID=e.EmployeeID where Convert(varchar(10),[date],121) between ? and ? and a.DepartmentID=? and a.Type='销售单' and a.DaySumFlag=0 order by a.No ");
-            List list = commonDao.findForJdbc(sql.toString(), begindate, enddate, client.getDeptID());
-            j.setObj(list);
+            String beginDate = oConvertUtils.getString(req.getParameter("beginDate"));
+            String endDate = oConvertUtils.getString(req.getParameter("endDate"));
+            int page =oConvertUtils.getInt(req.getParameter("currPage"));
+            String no = oConvertUtils.getString(req.getParameter("no"));
+            String audit= oConvertUtils.getString(req.getParameter("audit"));
+            String departmentId=oConvertUtils.getString(req.getParameter("departmentId"));
+            String employeeId =oConvertUtils.getString(req.getParameter("employeeId"));
+            
+            StringBuffer sql = new StringBuffer(); //and a.DaySumFlag=0 再返回一个部门编码，用于冲销功能 DelFlag 冲销标志
+            sql.append(" Select a.Audit,a.AuditFlag,a.TallyFlag,a.DelFlag,a.EmployeeID,a.DaySumFlag,a.DepartmentID,d.Code deptNo,d.Department,a.CashMoney,isNull(a.CashMoney,0)-isNull(a.ReturnMoney,0) RealCash,a.POSSalesID,a.VipID,v.Code VipCode,v.Vip,a.[No],Convert(Varchar(19),a.[Date],121) as Date,e.Name Employee,a.QuantitySum,a.FactAmountSum,a.AmountSum, "
+                    + " isNull(a.CashMoney,0)+isNull(a.CardMoney,0)+isNull(CashPaper,0)+isNull(PresentAmount,0)+isNull(a.CashAmount1,0)*Convert(float,isNull(a.CashRate1,0)/100.0)+isNull(a.DepositAmount,0)+ isNull(a.CashAmount2,0)*Convert(float,isNull(a.CashRate2,0)/100.0)+isNull(a.OrderAmount,0) FactAmt,a.Memo "
+                    + " From POSSales a left join Vip v on a.VipID=v.VipID Join Department d on a.DepartmentID=d.DepartmentID left join Employee e on a.EmployeeID=e.EmployeeID where  a.Type='销售单'  ");
+          
+            // 时间区间
+            if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
+               // sb.append(" and Date between convert(datetime,'" + beginDate + "', 120) and convert(datetime,'" + endDate + "', 120) ");
+            	sql.append(" and a.Date >= '" + beginDate + "' and a.Date <='" + endDate + " 23:59:59.997'");
+            }
+            
+            
+            // 部门
+            if (departmentId != null && !"".equals(departmentId.trim()) && !"null".equalsIgnoreCase(departmentId)) {
+                sql.append(" and a.departmentId = '" + departmentId + "' ");
+            }
+            // 经手人
+            if (employeeId != null && !"".equals(employeeId.trim()) && !"null".equalsIgnoreCase(employeeId)) {
+                sql.append(" and a.employeeId = '" + employeeId + "' ");
+            }
+            
+            // 经手人
+            if (audit != null && !"".equals(audit.trim()) && !"null".equalsIgnoreCase(audit)) {
+                sql.append(" and a.audit = '" + audit + "' ");
+            }
+            
+            // 经手人 这个是
+            if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
+                sql.append(" and a.no like '%" + no + "%' ");
+            }
+            
+            
+            sql.append(" and  a.DepartmentID in (Select DepartmentID From DepartmentRight Where UserID='"+client.getUserID()+"' and RightFlag=1) "+ 
+                       " Order by a.[Date] DESC,(a.[No]) DESC");
+            
+            List<Map<String,Object>> list = commonDao.findForJdbc(sql.toString(), page, 15);
+            System.out.println("sql语句:"+sql.toString());
+            
+            System.out.println("list记录数:"+list.size());
+            
+            for(int i=0;i<list.size();i++){
+            	Map<String,Object> map=list.get(i);
+            	
+            	 if(!"".equals(String.valueOf(map.get("FactAmountSum"))) && map.get("FactAmountSum") !=null){
+         			 map.put("FactAmountSum", new BigDecimal(String.valueOf(map.get("FactAmountSum"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         			 map.put("FactAmountSum", "");	 
+         			 }
+            	 
+            	 if(!"".equals(String.valueOf(map.get("AmountSum"))) && map.get("AmountSum") !=null){
+         			 map.put("AmountSum", new BigDecimal(String.valueOf(map.get("AmountSum"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         			 map.put("AmountSum", "");	 
+         			 } 
+            	 if(!"".equals(String.valueOf(map.get("FactAmt"))) && map.get("FactAmt") !=null){
+         			 map.put("FactAmt", new BigDecimal(String.valueOf(map.get("FactAmt"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         			 map.put("FactAmt", "");	 
+         			 } 
+            	 
+            	 
+            	 if(!"".equals(String.valueOf(map.get("RealCash"))) && map.get("RealCash") !=null){
+         			 map.put("RealCash", new BigDecimal(String.valueOf(map.get("RealCash"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         			 map.put("RealCash", "");	 
+         			 } 
+            	 
+            	 
+            	 List<Map<String,Object>> right =new ArrayList<>();
+     			 Map<String,Object> m=new LinkedHashMap<>();
+     			 m.put("text", "冲销");
+				 Map<String,Object> stylemap= new LinkedHashMap<>();
+				 stylemap.put("backgroundColor", "#F4333C");
+				 stylemap.put("color", "white");
+				 m.put("style",stylemap );
+				 right.add(m);
+				 
+				 map.put("right", right);
+	 			 
+            }
+           
+           if(list.size() >0){
+           j.setMsg("成功返回数据");
+           j.setObj(list);
+ 	       }else{
+ 		    j.setMsg("暂无数据"); 
+ 	       }
+            
         } catch (Exception e) {
             j.setSuccess(false);
             j.setMsg(e.getMessage());
@@ -291,6 +413,8 @@ public class SalesTicketController extends BaseController {
         return j;
     }
 
+    
+    
     /**
      * 获取店铺销售单
      * 
@@ -311,12 +435,61 @@ public class SalesTicketController extends BaseController {
             .append(" from possales a where No = ? ");
             Map<String,String> tmap = (Map<String, String>) commonDao.findForJdbc(sb.toString(), no).get(0);
             String possalesId = tmap.get("PosSalesID");
-            StringBuffer sql = new StringBuffer();
-            sql.append(" select g.Code GoodsCode,g.Name GoodsName,GoodsBarcode Barcode,c.Color,s.Size,b.Quantity,isnull(b.FactAmount,0) Amount,")
-            .append(" isnull(b.UnitPrice,0) UnitPrice, isnull(b.DiscountRate,10) DiscountRate ")
-            .append(" from possalesDetail b join goods g on b.goodsid=g.goodsid join color c on b.colorid=c.colorid ")
-            .append(" join [size] s on b.sizeid=s.sizeid where b.possalesid = ?  order by g.Code,c.Color,s.Size  ");
-            List list = commonDao.findForJdbc(sql.toString(), possalesId);
+            System.out.println("possalesId:"+possalesId);
+            StringBuffer sql = new StringBuffer(); //join [size] s on b.sizeid=s.sizeid
+            sql.append(" select a.*,b.Code GoodsCode,b.Name GoodsName,GoodsBarcode Barcode,c.Color,c.No ColorNo,d.Size,a.Quantity,isnull(a.FactAmount,0) Amount,")
+            .append(" isnull(a.UnitPrice,0) UnitPrice, isnull(a.DiscountRate,10) DiscountRate ")
+            .append(" from possalesDetail a join goods b on a.goodsid=b.goodsid join color c on a.colorid=c.colorid ")
+            .append(" join GoodsType e on b.GoodsTypeID=e.GoodsTypeID ")
+            .append(" join SizeGroupSize d on e.SizeGroupID=d.SizeGroupID and a.SizeID=d.SizeID")
+            .append("  where a.possalesid = ?  order by  a.SN,(b.[Code]),(c.[No]),d.[No] ");
+            List<Map<String,Object>> list = commonDao.findForJdbc(sql.toString(), possalesId);
+            //保留两位小数
+            for(int i=0;i<list.size();i++){
+            	Map<String,Object> datamap=list.get(i);
+            	 if(!"".equals(String.valueOf(datamap.get("UnitPrice"))) && datamap.get("UnitPrice") !=null){
+            		 datamap.put("UnitPrice", new BigDecimal(String.valueOf(datamap.get("UnitPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("UnitPrice", "");	 
+         			 } 
+            	 if(!"".equals(String.valueOf(datamap.get("DiscountRate"))) && datamap.get("DiscountRate") !=null){
+            		 datamap.put("DiscountRate", new BigDecimal(String.valueOf(datamap.get("DiscountRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("DiscountRate", "");	 
+         			 } 
+            	 if(!"".equals(String.valueOf(datamap.get("Discount"))) && datamap.get("Discount") !=null){
+            		 datamap.put("Discount", new BigDecimal(String.valueOf(datamap.get("Discount"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("Discount", "");	 
+         			 } 	 
+            	 if(!"".equals(String.valueOf(datamap.get("Amount"))) && datamap.get("Amount") !=null){
+            		 datamap.put("Amount", new BigDecimal(String.valueOf(datamap.get("Amount"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("Amount", "");	 
+         			 } 
+            	 if(!"".equals(String.valueOf(datamap.get("RetailSales"))) && datamap.get("RetailSales") !=null){
+            		 datamap.put("RetailSales", new BigDecimal(String.valueOf(datamap.get("RetailSales"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("RetailSales", "");	 
+         			 } 	 
+            	 if(!"".equals(String.valueOf(datamap.get("RetailAmount"))) && datamap.get("RetailAmount") !=null){
+            		 datamap.put("RetailAmount", new BigDecimal(String.valueOf(datamap.get("RetailAmount"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("RetailAmount", "");	 
+         			 }
+            	 
+            	 if(!"".equals(String.valueOf(datamap.get("FactAmount"))) && datamap.get("FactAmount") !=null){
+            		 datamap.put("FactAmount", new BigDecimal(String.valueOf(datamap.get("FactAmount"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("FactAmount", "");	 
+         			 } 
+            	 if(!"".equals(String.valueOf(datamap.get("PointRate"))) && datamap.get("PointRate") !=null){
+            		 datamap.put("PointRate", new BigDecimal(String.valueOf(datamap.get("PointRate"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         				datamap.put("PointRate", "");	 
+         			 }  
+            	 
+            }  
             Map<String,Object> map = new HashMap<String, Object>();
             map.put("possales", tmap);
             map.put("possalesDetail", list);
