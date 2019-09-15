@@ -1,8 +1,12 @@
 package com.fuxi.core.common.dao.impl;
 
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.springframework.stereotype.Repository;
+
 import com.fuxi.core.common.dao.ICommonDao;
 import com.fuxi.core.vo.base.Period;
 import com.fuxi.system.util.DataUtils;
@@ -322,6 +326,201 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
     	 callableStatementByName(procedure);
     	
     }
+    
+    //查询报表使用 ，并返回List<Map>
+    
+  //注意有返回结果集的时候，第一个参数必须设置为返回结果集参数，不然会报错。
+  		
+  	    public List<Map<String,Object>> Exec8088Rpt(String searchType,String Condition ,String DisType,String DepartmentID,String DistrictID,String Orderby
+  	    		,String OrderField,int OrderFieldNo,String BeginDate,String EndDate,String userID){
+  	    	 Procedure procedure = new Procedure();
+  	    	List<Map<String,Object>> ls=null;
+  	    	 if(searchType =="Department"){
+  	    	 procedure.setSql("z_8088Rpt");  	    	 
+  	    	 procedure.setVarcharParam("@Condition");
+  	    	 procedure.setValue("@Condition", Condition);
+  	    	 
+  	    	 procedure.setVarcharParam("@DisType");
+  	    	 procedure.setValue("@DisType", DisType);
+  	  
+  	    	 procedure.setVarcharParam("@DepartmentID");
+  	    	 procedure.setValue("@DepartmentID", DepartmentID);
+  	    	 
+  	    	 procedure.setVarcharParam("@DistrictID");
+ 	    	 procedure.setValue("@DistrictID", DistrictID);
+ 	    	 
+ 	    	 procedure.setVarcharParam("@Orderby");
+ 	    	 procedure.setValue("@Orderby", Orderby);
+ 	    	 procedure.setVarcharParam("@OrderField");
+	    	 procedure.setValue("@OrderField", OrderField);
+	    	 procedure.setVarcharParam("@OrderFieldNo");
+	    	 procedure.setValue("@OrderFieldNo", OrderFieldNo);
+	    	 procedure.setVarcharParam("@BeginDate");
+	    	 procedure.setValue("@BeginDate", BeginDate);
+	    	 procedure.setVarcharParam("@EndDate");
+	    	 procedure.setValue("@EndDate", EndDate);
+	    	 procedure.setVarcharParam("@userID");
+	    	 procedure.setValue("@userID", userID);
+  	    	 }else if(searchType =="Brand"){
+  	    		procedure.setSql("z_8089Rpt");  	    	 
+  	  	    	 procedure.setVarcharParam("@Condition");
+  	  	    	 procedure.setValue("@Condition", Condition);
+  	  	    	 
+  	  	    	 procedure.setVarcharParam("@DisType");
+  	  	    	 procedure.setValue("@DisType", DisType);
+  	  	  
+  	  	    	 procedure.setVarcharParam("@BrandID");
+  	  	    	 procedure.setValue("@BrandID", DepartmentID);
+  	  	    	 
+  	  	    	 procedure.setVarcharParam("@DistrictID");
+  	 	    	 procedure.setValue("@DistrictID", DistrictID);
+  	 	    	 
+  	 	    	 procedure.setVarcharParam("@Orderby");
+  	 	    	 procedure.setValue("@Orderby", Orderby);
+  	 	    
+  		    
+  		    	 procedure.setVarcharParam("@BeginDate");
+  		    	 procedure.setValue("@BeginDate", BeginDate);
+  		    	 procedure.setVarcharParam("@EndDate");
+  		    	 procedure.setValue("@EndDate", EndDate);
+  		    	 procedure.setVarcharParam("@userID");
+  		    	 procedure.setValue("@userID", userID); 
+  	    	 }else if(searchType =="Employee"){ //导购
+  	    		 procedure.setSql("z_8090Rpt");  	    	 
+  	  	    	 procedure.setVarcharParam("@Condition");
+  	  	    	 procedure.setValue("@Condition", Condition);
+  	  	    	 
+  	  	    	 procedure.setVarcharParam("@DisType");
+  	  	    	 procedure.setValue("@DisType", DisType);
+  	  	  
+  	  	    	 procedure.setVarcharParam("@EmployeeID");
+  	  	    	 procedure.setValue("@EmployeeID", DepartmentID);
+  	  	    	 
+  	  	    	 procedure.setVarcharParam("@DistrictID");
+  	 	    	 procedure.setValue("@DistrictID", DistrictID);
+  	 	    	 
+  	 	    	 procedure.setVarcharParam("@Orderby");
+  	 	    	 procedure.setValue("@Orderby", Orderby);
+  	 	    	 procedure.setVarcharParam("@OrderField");
+  		    	 procedure.setValue("@OrderField", OrderField);
+  		    	 procedure.setVarcharParam("@OrderFieldNo");
+  		    	 procedure.setValue("@OrderFieldNo", OrderFieldNo);
+  		    	 procedure.setVarcharParam("@BeginDate");
+  		    	 procedure.setValue("@BeginDate", BeginDate);
+  		    	 procedure.setVarcharParam("@EndDate");
+  		    	 procedure.setValue("@EndDate", EndDate);
+  		    	 procedure.setVarcharParam("@userID");
+  		    	 procedure.setValue("@userID", userID);
+ 
+  	    	 }else if(searchType=="GoodsType"){//品类
+  	    	    	 
+  	    		 procedure.setSql("z_8091Rpt");  	    	 
+ 	  	    	 procedure.setVarcharParam("@Condition");
+ 	  	    	 procedure.setValue("@Condition", Condition);
+ 	  	    	 
+ 	  	    	 procedure.setVarcharParam("@DisType");
+ 	  	    	 procedure.setValue("@DisType", DisType);
+ 	  	  
+ 	  	    	 procedure.setVarcharParam("@GoodsTypeID");
+ 	  	    	 procedure.setValue("@GoodsTypeID", DepartmentID);
+ 	  	    	 
+ 	  	    	 procedure.setVarcharParam("@DistrictID");
+ 	 	    	 procedure.setValue("@DistrictID", DistrictID);
+ 	 	    	 
+ 	 	    	 procedure.setVarcharParam("@Orderby");
+ 	 	    	 procedure.setValue("@Orderby", Orderby);
+ 	 	    
+ 		    
+ 		    	 procedure.setVarcharParam("@BeginDate");
+ 		    	 procedure.setValue("@BeginDate", BeginDate);
+ 		    	 procedure.setVarcharParam("@EndDate");
+ 		    	 procedure.setValue("@EndDate", EndDate);
+ 		    	 procedure.setVarcharParam("@userID");
+ 		    	 procedure.setValue("@userID", userID); 
+  	    	 }else if(searchType =="Supplier"){ //厂商
+  	    		procedure.setSql("z_8092Rpt");  	    	 
+	  	    	 procedure.setVarcharParam("@Condition");
+	  	    	 procedure.setValue("@Condition", Condition);
+	  	    	 
+	  	    	 procedure.setVarcharParam("@DisType");
+	  	    	 procedure.setValue("@DisType", DisType);
+	  	  
+	  	    	 procedure.setVarcharParam("@SupplierID");
+	  	    	 procedure.setValue("@SupplierID", DepartmentID);
+	  	    	 
+	  	    	 procedure.setVarcharParam("@DistrictID");
+	 	    	 procedure.setValue("@DistrictID", DistrictID);
+	 	    	 
+	 	    	 procedure.setVarcharParam("@Orderby");
+	 	    	 procedure.setValue("@Orderby", Orderby);
+	 	    
+		    
+		    	 procedure.setVarcharParam("@BeginDate");
+		    	 procedure.setValue("@BeginDate", BeginDate);
+		    	 procedure.setVarcharParam("@EndDate");
+		    	 procedure.setValue("@EndDate", EndDate);
+		    	 procedure.setVarcharParam("@userID");
+		    	 procedure.setValue("@userID", userID); 
+  	    		 
+  	    	 }else if(searchType =="Goods"){ //排行按货品显示  这里没有返回查询结结果要的，要另外 写
+  	  		     procedure.setSql("z_8104Rpt");  	    	 
+	  	    	 procedure.setVarcharParam("@Condition");
+	  	    	 procedure.setValue("@Condition", Condition);
+	  	    	 procedure.setVarcharParam("@BeginDate");
+		    	 procedure.setValue("@BeginDate", BeginDate);
+		    	 procedure.setVarcharParam("@EndDate");
+		    	 procedure.setValue("@EndDate", EndDate);
+		    	 procedure.setVarcharParam("@userID");
+		    	 procedure.setValue("@userID", userID);
+  	    		
+  	    	 }
+  	    	 
+  	    	Map<String,Object> map= callableStatementByName(procedure); //这个得看过程是否返回的是列表
+  	    	if(searchType !="Goods"){
+  	    	for(String key : map.keySet()){
+    		    ls =(List<Map<String,Object>>) map.get(key);
+    		  
+    	    }
+  	    	}else{
+  	    	   ls =this.findForJdbc("select * from GoodsRankings where userid= ? ", userID);
+  	    		
+  	    	}
+  	    
+  	    	//作字段转换 FactAmount 转为Amount 作显示用  这里判断 键位即可
+  	    	for(int i=0;i<ls.size();i++){
+  	    		Map<String,Object> m=ls.get(i);
+  	    		if(m.containsKey("FactAmount")){
+  	    		 if(!"".equals(String.valueOf(m.get("FactAmount"))) && m.get("FactAmount") !=null){
+         			 m.put("Amount", new BigDecimal(String.valueOf(m.get("FactAmount"))).setScale(2,BigDecimal.ROUND_DOWN));
+         			 }else{
+         			 m.put("Amount", "");	 
+         			 }
+  	    		}
+  	    		if(m.containsKey("Department")){
+  	    	    m.put("Name", m.get("Department"));
+  	    		}
+  	    		if(m.containsKey("Brand")){
+  	    		m.put("Name", m.get("Brand"));
+  	    		}
+  	    		if(m.containsKey("GoodsType")){
+  	    		m.put("Name", m.get("GoodsType"));	
+  	    		}
+  	    		if(m.containsKey("Supplier")){	
+  	    		m.put("Name", m.get("Supplier"));		
+  	    		}
+  	    		if(m.containsKey("Qty") && searchType =="Goods"){
+  	    		m.put("Quantity", m.get("Qty"));	
+  	    		
+  	    		}
+  	    		if(m.containsKey("Amt") && searchType =="Goods"){
+  	  	    		m.put("Amount", m.get("Amt"));	
+  	  	    		
+  	  	    		}
+  	    	}
+  	    
+  	    	return ls;
+  	    	
+  	    }
     
     
     

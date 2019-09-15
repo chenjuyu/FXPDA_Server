@@ -292,7 +292,39 @@ public class SalesTicketController extends BaseController {
     	return j;
     }
     
-    
+    @RequestMapping(params = "report")
+    @ResponseBody
+    public AjaxJson report (HttpServletRequest req){
+    	  AjaxJson j = new AjaxJson();
+          j.setAttributes(new HashMap<String, Object>());
+          Client client = ResourceUtil.getClientFromSession(req);
+          try {
+        	  
+        	  String Condition =oConvertUtils.getString(req.getParameter("Condition"));
+        	  String searchType =oConvertUtils.getString(req.getParameter("searchType"));//查看是按哪个类型汇总的
+        	  String DisType =oConvertUtils.getString(req.getParameter("DisType"));
+        	  String DepartmentID =oConvertUtils.getString(req.getParameter("DepartmentID"));
+        	  String DistrictID =oConvertUtils.getString(req.getParameter("DistrictID"));
+        	  String Orderby =oConvertUtils.getString(req.getParameter("Orderby"));
+        	  String OrderField ="";		  
+        	  int OrderFieldNo =2;
+        	  String BeginDate =oConvertUtils.getString(req.getParameter("BeginDate"));
+        	  String EndDate =oConvertUtils.getString(req.getParameter("EndDate"));
+        	  String userID =client.getUserID();
+        	  List<Map<String,Object>> ls= commonDao.Exec8088Rpt(searchType,Condition, DisType, DepartmentID, DistrictID, Orderby, OrderField, OrderFieldNo, BeginDate, EndDate, userID);
+        	  j.setObj(ls);
+        	  
+          }catch(Exception e){
+        	  
+        	  j.setSuccess(false);
+              j.setMsg(e.getMessage());
+              SysLogger.error(e.getMessage(), e);  
+        	  
+          }
+          
+          return j;
+    	
+    }
     
     
 
