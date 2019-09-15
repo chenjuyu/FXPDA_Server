@@ -1,6 +1,7 @@
 package com.fuxi.core.common.dao.impl;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -334,8 +335,9 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
   	    public List<Map<String,Object>> Exec8088Rpt(String searchType,String Condition ,String DisType,String DepartmentID,String DistrictID,String Orderby
   	    		,String OrderField,int OrderFieldNo,String BeginDate,String EndDate,String userID){
   	    	 Procedure procedure = new Procedure();
-  	    	List<Map<String,Object>> ls=null;
-  	    	 if(searchType =="Department"){
+  	    	List<Map<String,Object>> ls=new ArrayList<>();
+  	    	
+  	    	 if("Department".equals(searchType)){
   	    	 procedure.setSql("z_8088Rpt");  	    	 
   	    	 procedure.setVarcharParam("@Condition");
   	    	 procedure.setValue("@Condition", Condition);
@@ -361,7 +363,7 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
 	    	 procedure.setValue("@EndDate", EndDate);
 	    	 procedure.setVarcharParam("@userID");
 	    	 procedure.setValue("@userID", userID);
-  	    	 }else if(searchType =="Brand"){
+  	    	 }else if("Brand".equals(searchType)){
   	    		procedure.setSql("z_8089Rpt");  	    	 
   	  	    	 procedure.setVarcharParam("@Condition");
   	  	    	 procedure.setValue("@Condition", Condition);
@@ -385,7 +387,7 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
   		    	 procedure.setValue("@EndDate", EndDate);
   		    	 procedure.setVarcharParam("@userID");
   		    	 procedure.setValue("@userID", userID); 
-  	    	 }else if(searchType =="Employee"){ //导购
+  	    	 }else if("Employee".equals(searchType)){ //导购
   	    		 procedure.setSql("z_8090Rpt");  	    	 
   	  	    	 procedure.setVarcharParam("@Condition");
   	  	    	 procedure.setValue("@Condition", Condition);
@@ -412,7 +414,7 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
   		    	 procedure.setVarcharParam("@userID");
   		    	 procedure.setValue("@userID", userID);
  
-  	    	 }else if(searchType=="GoodsType"){//品类
+  	    	 }else if("GoodsType".equals(searchType)){//品类
   	    	    	 
   	    		 procedure.setSql("z_8091Rpt");  	    	 
  	  	    	 procedure.setVarcharParam("@Condition");
@@ -437,7 +439,7 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
  		    	 procedure.setValue("@EndDate", EndDate);
  		    	 procedure.setVarcharParam("@userID");
  		    	 procedure.setValue("@userID", userID); 
-  	    	 }else if(searchType =="Supplier"){ //厂商
+  	    	 }else if("Supplier".equals(searchType)){ //厂商
   	    		procedure.setSql("z_8092Rpt");  	    	 
 	  	    	 procedure.setVarcharParam("@Condition");
 	  	    	 procedure.setValue("@Condition", Condition);
@@ -462,7 +464,7 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
 		    	 procedure.setVarcharParam("@userID");
 		    	 procedure.setValue("@userID", userID); 
   	    		 
-  	    	 }else if(searchType =="Goods"){ //排行按货品显示  这里没有返回查询结结果要的，要另外 写
+  	    	 }else if("Goods".equals(searchType)){ //排行按货品显示  这里没有返回查询结结果要的，要另外 写
   	  		     procedure.setSql("z_8104Rpt");  	    	 
 	  	    	 procedure.setVarcharParam("@Condition");
 	  	    	 procedure.setValue("@Condition", Condition);
@@ -476,13 +478,18 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
   	    	 }
   	    	 
   	    	Map<String,Object> map= callableStatementByName(procedure); //这个得看过程是否返回的是列表
-  	    	if(searchType !="Goods"){
+  	    	
+  	    	System.out.println("map:"+String.valueOf(map));
+  	    	
+  	    	if(map!=null && !"{}".equals(map)){ //不返回数据时为{} 所以这个也要的的的排除
   	    	for(String key : map.keySet()){
     		    ls =(List<Map<String,Object>>) map.get(key);
     		  
     	    }
-  	    	}else{
-  	    	   ls =this.findForJdbc("select * from GoodsRankings where userid= ? ", userID);
+  	    	}
+  	    	if("Goods".equals(searchType))
+  	    	{
+  	    	   ls =this.findForJdbc("select *,AvgPrice=Case when isnull(Qty,0)=0 then '' else round(Amt/Qty,2) end from GoodsRankings where userid= ? ", userID);
   	    		
   	    	}
   	    
@@ -508,12 +515,33 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
   	    		if(m.containsKey("Supplier")){	
   	    		m.put("Name", m.get("Supplier"));		
   	    		}
-  	    		if(m.containsKey("Qty") && searchType =="Goods"){
+  	    		if(m.containsKey("Qty") && "Goods".equals(searchType)){
   	    		m.put("Quantity", m.get("Qty"));	
   	    		
   	    		}
-  	    		if(m.containsKey("Amt") && searchType =="Goods"){
-  	  	    		m.put("Amount", m.get("Amt"));	
+  	    		if(m.containsKey("Amt") && "Goods".equals(searchType)){
+  	    			
+  	    			 if(!"".equals(String.valueOf(m.get("Amt"))) && m.get("Amt") !=null){
+  	         			 m.put("Amount", new BigDecimal(String.valueOf(m.get("Amt"))).setScale(2,BigDecimal.ROUND_DOWN));
+  	         			 }else{
+  	         			 m.put("Amount", "");	 
+  	         			 }
+  	    			
+  	  	    		
+  	  	    		}
+  	    		if(m.containsKey("Code") && "Goods".equals(searchType)){ //把货号当着Name 显示 会覆盖原来的值
+  	  	    		m.put("Name", m.get("Code"));	
+  	  	    		
+  	  	    		}
+  	    		
+  	    		if(m.containsKey("AvgPrice") && "Goods".equals(searchType)){ //把货号当着Name 显示 会覆盖原来的值
+  	  	    		
+  	    			 if(!"".equals(String.valueOf(m.get("AvgPrice"))) && m.get("AvgPrice") !=null){
+  	         			 m.put("AvgPrice", new BigDecimal(String.valueOf(m.get("AvgPrice"))).setScale(2,BigDecimal.ROUND_DOWN));
+  	         			 }else{
+  	         			 m.put("AvgPrice", "");	 
+  	         			 }
+  	    			
   	  	    		
   	  	    		}
   	    	}
