@@ -63,8 +63,7 @@ public class PurchaseOrderController extends BaseController {
 	              String departmentId = oConvertUtils.getString(req.getParameter("departmentId"));
 	              String supplierId = oConvertUtils.getString(req.getParameter("supplierId"));
 	              String employeeId = oConvertUtils.getString(req.getParameter("employeeId"));
-	              
-	              int direction =Integer.parseInt(oConvertUtils.getString(req.getParameter("direction")));//代表收，退
+	       
 	              
 	              StringBuffer sb = new StringBuffer();
 	              sb.append(" select so.PurchaseOrderID,so.SupplierID,so.TallyFlag,so.DepartmentID, de.Department ,so.Type, No, CONVERT(varchar(100), Date, 111) Date,isnull(QuantitySum,0) QuantitySum,").append(" AmountSum,AuditFlag,so.MadeBy,so.madebydate,isnull((select Supplier from Supplier s where so.SupplierId = s.SupplierId),'') Supplier,")
@@ -80,7 +79,7 @@ public class PurchaseOrderController extends BaseController {
 	              }
 	              // 查询单号时
 	              if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
-	                  sb.append(" and No = '" + no + "' ");
+	                  sb.append(" and No like '%" + no + "%' ");
 	              }
 	              // 时间区间
 	              if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {

@@ -73,7 +73,7 @@ public class PaymentController extends BaseController {
                   }
                   // 查询单号时
                   if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
-                      sb.append(" and a.No = '" + no + "' ");
+                      sb.append(" and a.No like '%" + no + "%' ");
                   }
                   // 时间区间
                   if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {

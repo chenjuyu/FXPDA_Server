@@ -85,7 +85,7 @@ public class SalesController extends BaseController {
             }
             // 查询单号时
             if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
-                sb.append(" and No = '" + no + "' ");
+                sb.append(" and No like '%" + no + "%' ");
             }
             // 时间区间
             if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {
@@ -153,7 +153,7 @@ public class SalesController extends BaseController {
           }
           // 查询单号时
           if (no != null && !"".equals(no.trim()) && !"null".equalsIgnoreCase(no)) {
-              sb.append(" and so.No = '" + no + "' ");
+              sb.append(" and so.No like '%" + no + "%' ");
           }
           // 时间区间
           if (beginDate != null && !"".equals(beginDate.trim()) && !"null".equalsIgnoreCase(beginDate) && endDate != null && !"".equals(endDate.trim()) && !"null".equalsIgnoreCase(endDate)) {

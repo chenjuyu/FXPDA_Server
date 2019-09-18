@@ -285,7 +285,15 @@ public class LoginController extends BaseController {
             map.put("giftMenuRight", getUserMenuRight(userId, "922"));
             // 销售单日结操作权限
             map.put("dailyKnotsMenuRight", getUserMenuRight(userId, "933"));
-
+            
+            //收款单操作权限 
+            map.put("receivalMenuRight", getUserMenuRight(userId, "205"));
+            
+            //付款单操作权限 
+            map.put("paymentMenuRight", getUserMenuRight(userId, "104"));
+            //采购订单操作权限
+            map.put("purchaseOrderMenuRight", getUserMenuRight(userId, "101"));
+            
             // 用户字段权限(参考进价)
             map.put("purchasePriceRight", getUserTableRight(userId, "04", "39"));
             // 用户字段权限(厂商)
