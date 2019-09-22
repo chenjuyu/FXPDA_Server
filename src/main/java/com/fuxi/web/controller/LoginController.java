@@ -160,7 +160,7 @@ public class LoginController extends BaseController {
      * 用户登录方法,检查用户名密码是否正确 正确:加载用户的基本信息 错误:返回错误登录信息
      * 
      * @param req
-     * @return
+     * @return params = "login"
      */
     @RequestMapping(params = "login")
     @ResponseBody

@@ -14,14 +14,14 @@
 	<context:component-scan base-package="com.fuxi.web.*"/>
 	
 	
-	<!-- 默认的视图解析器 在上边的解析错误时使用 (默认使用html)- -->
+	<!-- 默认的视图解析器 在上边的解析错误时使用 (默认使用html)- p:order="3" -->
 	<bean id="defaultViewResolver"
 		class="org.springframework.web.servlet.view.InternalResourceViewResolver"
 		p:order="3">
 		<property name="viewClass"
 			value="org.springframework.web.servlet.view.JstlView" />
-		<property name="contentType" value="text/html" />
-		<property name="prefix" value="/webpage/" />
+		<property name="contentType" value="text/html" /> 
+		<property name="prefix" value="/webpage/" /> 
 		<property name="suffix" value=".jsp" />
 	</bean>
 	
@@ -45,6 +45,24 @@
 		</property>
 		
 	</bean>
+	
+	<!--ios AFN网络请求时，java后台获取不到parameter的解决方式 -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding">
+			<value>UTF-8</value>
+		</property>
+		<property name="maxUploadSize">
+			<value>32505856</value><!-- 上传文件大小限制为31M，31*1024*1024 -->
+		</property>
+		<property name="maxInMemorySize">
+			<value>409600000</value>
+		</property>
+	</bean>
+	
+	
+	
+	
+	
 	
 		<!-- 拦截器 -->
 	<mvc:interceptors>

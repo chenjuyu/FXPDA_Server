@@ -299,7 +299,7 @@ public class PackingBoxController extends BaseController {
                 Map<String, String> map = new HashMap<String, String>();
                 map.put("relationId", relationId);
                 map.put("userId", client.getUserID());
-                packingBoxMap.add(map);
+                packingBoxMap.add(map);//servlet-api-3.0 没有这个了tomcat中的有req.getServletContext().getRealPath("/")
                 Map<String, String> codeMap = MyTools.parserXml(req.getServletContext().getRealPath("/") + "/resources/typeLetter.xml");
                 j.getAttributes().put("detailList", detailList);
                 j.getAttributes().put("boxNoList", boxNoList);
