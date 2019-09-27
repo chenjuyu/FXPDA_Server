@@ -832,5 +832,28 @@ public class SalesController extends BaseController {
         }
         return j;
     }
+    
+    @RequestMapping(params = "salesreport") //分销管理，饼型图显示
+    @ResponseBody
+    public AjaxJson salesreport(HttpServletRequest req) {
+        Client client = ResourceUtil.getClientFromSession(req);
+        AjaxJson j = new AjaxJson();
+        j.setAttributes(new HashMap<String, Object>());
+        try {
+        	String BeginDate = oConvertUtils.getString(req.getParameter("BeginDate"));
+            String EndDate = oConvertUtils.getString(req.getParameter("EndDate"));
+            System.out.println("进入到方法了");
+        	List<Map<String,Object>> ls=commonDao.CreateReceivalReport(BeginDate, EndDate, "App"+client.getUserID(),client.getUserID());
+        	Map<String,Object> chartData =new LinkedHashMap<String, Object>();
+        	chartData.put("series",ls);
+        	j.setAttributes(chartData);
+        } catch (Exception e) {
+            j.setSuccess(false);
+            j.setMsg(e.getMessage());
+            SysLogger.error(e.getMessage(), e);
+        }
+        
+        return j;
+    }
 
 }

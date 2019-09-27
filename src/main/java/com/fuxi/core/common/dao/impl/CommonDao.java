@@ -328,10 +328,129 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao {
     	
     }
     
-    //查询报表使用 ，并返回List<Map>
+    //应收汇总表，客户 调用系统里面的过程
+    public List<Map<String,Object>> CreateReceivalReport(String BeginDate,String EndDate,String HostName,String UserID){
+     Procedure procedure = new Procedure();
+   	 procedure.setSql("CreateReceivalReport");
+   	 procedure.setVarcharParam("@BeginPeriod");
+   	 procedure.setValue("@BeginPeriod", BeginDate);
+   	 procedure.setVarcharParam("@EndPeriod");
+   	 procedure.setValue("@EndPeriod", EndDate);
+   	 
+   	 procedure.setVarcharParam("@HostName");
+   	 procedure.setValue("@HostName", HostName);
+   	 
+	 procedure.setVarcharParam("@CustomerID");
+   	 procedure.setValue("@CustomerID", "");
+   	 
+   	procedure.setVarcharParam("@DepartmentID");
+  	 procedure.setValue("@DepartmentID", "");
+   	 
+    	procedure.setVarcharParam("@EmployeeID");
+     	 procedure.setValue("@EmployeeID", "");
+     	procedure.setVarcharParam("@BrandID");
+    	 procedure.setValue("@BrandID", "");
+    	 
+    	 
+    	 procedure.setIntegerParam("@TallyFlag");
+    	 procedure.setValue("@TallyFlag", 1);
+    	 
+    	 procedure.setIntegerParam("@StockMoveFlag");
+    	 procedure.setValue("@StockMoveFlag", 0);
+    	 
+    	 procedure.setVarcharParam("@UserID");
+    	 procedure.setValue("@UserID", UserID);
+    	 
+    	 procedure.setIntegerParam("@InCluDX");
+    	 procedure.setValue("@InCluDX", 1);
+    	 
+    	 procedure.setIntegerParam("@DebugFlag");
+    	 procedure.setValue("@DebugFlag", 0);
+  	 
+   	 callableStatementByName(procedure);
+   	 
+   	List<Map<String,Object>> list =this.findForJdbc("Select b.Code,b.Customer,a.*,b.StopFlag  from ReceivalReport a,Customer b  where a.CustomerID=b.CustomerID and TerminalName = ? and isnull(ARAmount,0)>0  Order by b.Code ", HostName);
+    //没有数据 时，才查询，如果这个只是用于显示当天的 粗略图，就算后台做单，不会刷新	  
+  
+   	List<Map<String,Object>> series=new ArrayList<>();
+   	for(int i=0;i<list.size();i++){//提取字段
+      Map<String,Object> dm=new LinkedHashMap<>();
+      dm.put("name", list.get(i).get("Customer")); 
+      
+      if(list.get(i).get("ARAmount") !=null && !"".equals(list.get(i).get("ARAmount")) && new BigDecimal(String.valueOf(list.get(i).get("ARAmount"))).compareTo(BigDecimal.ZERO) !=0){
+       dm.put("data", new BigDecimal(String.valueOf(list.get(i).get("ARAmount"))).setScale(2,BigDecimal.ROUND_DOWN));
+      }else{
+       dm.put("data",0);	  
+      }
+      series.add(dm);
+   	}
+   	
+    return series;
+    }
     
+    
+    //应付汇总表，厂商 调用系统里面的过程
+    public List<Map<String,Object>> CreatePaymentReport(String BeginDate,String EndDate,String HostName,String UserID){
+     Procedure procedure = new Procedure();
+   	 procedure.setSql("CreatePaymentReport");
+   	 procedure.setVarcharParam("@BeginPeriod");
+   	 procedure.setValue("@BeginPeriod", BeginDate);
+   	 procedure.setVarcharParam("@EndPeriod");
+   	 procedure.setValue("@EndPeriod", EndDate);
+   	 
+   	 procedure.setVarcharParam("@HostName");
+   	 procedure.setValue("@HostName", HostName);
+   	 
+	 procedure.setVarcharParam("@SupplierID");
+   	 procedure.setValue("@SupplierID", "");
+   	 
+   	procedure.setVarcharParam("@DepartmentID");
+  	 procedure.setValue("@DepartmentID", "");
+   	 
+    	procedure.setVarcharParam("@EmployeeID");
+     	 procedure.setValue("@EmployeeID", "");
+     	procedure.setVarcharParam("@BrandID");
+    	 procedure.setValue("@BrandID", "");
+    	 
+    	 
+    	 procedure.setIntegerParam("@TallyFlag");
+    	 procedure.setValue("@TallyFlag", 1);
+    	 
+    	 procedure.setIntegerParam("@InCluDX");
+    	 procedure.setValue("@InCluDX", 1);
+    	 
+    	 
+    	 procedure.setVarcharParam("@UserID");
+    	 procedure.setValue("@UserID", UserID);
+    	 
+    	 
+    	 procedure.setIntegerParam("@DebugFlag");
+    	 procedure.setValue("@DebugFlag", 0);
+  	 
+   	 callableStatementByName(procedure);
+   	 
+   	List<Map<String,Object>> list =this.findForJdbc("Select b.Code,b.Supplier,a.*,b.StopFlag  from PaymentReport a,Supplier b  where a.SupplierID=b.SupplierID and TerminalName = ? and isnull(APAmount,0)>0  Order by b.Code ", HostName);
+    //没有数据 时，才查询，如果这个只是用于显示当天的 粗略图，就算后台做单，不会刷新	  
+  
+   	List<Map<String,Object>> series=new ArrayList<>();
+   	for(int i=0;i<list.size();i++){//提取字段
+      Map<String,Object> dm=new LinkedHashMap<>();
+      dm.put("name", list.get(i).get("Supplier")); 
+      
+      if(list.get(i).get("APAmount") !=null && !"".equals(list.get(i).get("APAmount")) && new BigDecimal(String.valueOf(list.get(i).get("APAmount"))).compareTo(BigDecimal.ZERO) !=0){
+       dm.put("data", new BigDecimal(String.valueOf(list.get(i).get("APAmount"))).setScale(2,BigDecimal.ROUND_DOWN));
+      }else{
+       dm.put("data",0);	  
+      }
+      series.add(dm);
+   	}
+   	
+    return series;
+    }
+    
+    
+    //查询报表使用 ，并返回List<Map>
   //注意有返回结果集的时候，第一个参数必须设置为返回结果集参数，不然会报错。
-  		
   	    public List<Map<String,Object>> Exec8088Rpt(String searchType,String Condition ,String DisType,String DepartmentID,String DistrictID,String Orderby
   	    		,String OrderField,int OrderFieldNo,String BeginDate,String EndDate,String userID){
   	    	 Procedure procedure = new Procedure();
